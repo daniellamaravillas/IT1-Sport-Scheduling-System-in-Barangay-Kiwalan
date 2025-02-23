@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($result->num_rows > 0) {
         $error = "Email already exists.";
     } else {
-        $stmt = $conn->prepare("INSERT INTO users (email, password , nickname, account_level) VALUES (?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO users (email, password , nickname , account_level) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("ssss", $email, $password, $nickname, $account_level);
         $stmt->execute();
         $success = "Registration successful!";
@@ -30,9 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($success)) {
         echo "<script>
             alert('$success');
-            window.location='home.php';
+            window.location='index.php';
         </script>";
-        header("Location: index.php");
         exit;
     }
 }
@@ -63,14 +62,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
 
             <div class="mb-3">
-                <label for="nickname" class="form-label">Nickname:</label>
-                <input type="text" id="nickname" name="nickname" class="form-control" required>
+                <label for="nickname" class="form-label">Username:</label>
+                <input type="text" id="username" name="username" class="form-control" required>
             </div>
 
             <div class="mb-3">
                 <label for="account_level" class="form-label">Account Level:</label>
                 <select id="account_level" name="account_level" class="form-control" required>
-                    <option value="user">Admin</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
                 </select>
             </div>
 

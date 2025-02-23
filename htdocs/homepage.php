@@ -7,7 +7,6 @@ session_start(); // Move this to the top before using session variables
 
 include 'db.php';
 include 'navigation.php';
-
 // Check if the user is logged in
 if (!isset($_SESSION['email'])) {
     header("Location: index.php");
@@ -37,7 +36,7 @@ $nickname = $user ? htmlspecialchars($user['nickname'], ENT_QUOTES, 'UTF-8') : "
     <title>Home</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="home.css">
+    
     <link href="home.css"stylesheet">
 </head>
 <body>
@@ -47,14 +46,12 @@ $nickname = $user ? htmlspecialchars($user['nickname'], ENT_QUOTES, 'UTF-8') : "
             <h2><?php echo "Welcome, " . $nickname . "!"; ?></h2>
         </div>
         <div class="card-body">
-            <h3>Schedules</h3>
+            <h3>Barangay Kiwalan Sport Scheduling</h3>
             <p>Here you can find the latest schedules for sports events.</p>
-            <!-- Add schedule details here -->
-
-            <h3>Events</h3>
             <p>Explore the different events available in our community.</p>
-            <!-- Add sports details here -->
+       
         </div>
+        <button class="btn btn-primary w-100" onclick="window.location.href='calendar.php'">View Calendar</button>
     </div>
 </div>
 </body>

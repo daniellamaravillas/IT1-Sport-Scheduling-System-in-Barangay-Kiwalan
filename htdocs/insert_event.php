@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $pdo->prepare("INSERT INTO Events (Events_name, clientID) VALUES (?, ?)");
     $stmt->execute([$eventName, $clientID]);
     
-    header("Location: create_schedule.php");
+    header("Location: insert_schedule.php");
     exit;
 }
 ?>

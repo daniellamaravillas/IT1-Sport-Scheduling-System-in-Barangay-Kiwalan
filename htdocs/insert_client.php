@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $stmt->bind_param("sss", $clients_name, $contact_number, $location);
             if ($stmt->execute()){
                 $message = "Client inserted successfully.";
-                echo '<script>window.location.href="add_event.php";</script>';
+                echo '<script>window.location.href="insert_event.php";</script>';
             } else {
                 $message = "Error inserting client: " . $stmt->error;
             }
