@@ -17,13 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $stmt->bind_param("sss", $clients_name, $contact_number, $location);
             if ($stmt->execute()){
                 $message = "Client inserted successfully.";
-                echo '<script>window.location.href="insert_event.php";</script>';
+                $message .= ' <a href="insert_event.php">Proceed to insert event</a>';
             } else {
+                // Output detailed error if execute fails
                 $message = "Error inserting client: " . $stmt->error;
             }
             $stmt->close();
         } else {
-            $message = "Error: " . $conn->error;
+            // Output detailed error if prepare fails
+            $message = "Error preparing statement: " . $conn->error;
         }
     } else {
         $message = "Please fill all fields.";
@@ -41,7 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
 
     <div class="container">
         <h2>Insert Client</h2>
-        <?php if(isset($message)) echo "<p>$message</p>"; ?>
+        <?php 
+          if(isset($message)) {
+              // Display message in a styled paragraph for clarity
+              echo "<p style='color:red;'>$message</p>"; 
+          } 
+        ?>
         <form method="POST" action="insert_client.php">
             <label for="clients_name" class="form-label">Client Name:</label>
             <input type="text" name="clients_name" id="clients_name" class="form-control" required>

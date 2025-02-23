@@ -52,7 +52,7 @@ DROP TABLE IF EXISTS `Events`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Events` (
   `EventID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `Events_name` text NOT NULL DEFAULT current_timestamp(),
+  `Events_name` VARCHAR(255) NOT NULL, -- fixed: changed from text default current_timestamp() to VARCHAR(255)
   `ClientID` bigint(20) NOT NULL,
   PRIMARY KEY (`EventID`),
   KEY `Clients_Events` (`ClientID`),
@@ -108,7 +108,7 @@ DROP TABLE IF EXISTS `Updated_Status`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Updated_Status` (
   `StatusID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `updated_status` text NOT NULL DEFAULT current_timestamp(),
+  `updated_status` TIMESTAMP NOT NULL, -- fixed: changed column type to TIMESTAMP
   PRIMARY KEY (`StatusID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
