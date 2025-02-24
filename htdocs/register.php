@@ -7,7 +7,7 @@ include ('db.php');
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = htmlspecialchars($_POST['email']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $nickname = htmlspecialchars($_POST['nickname']);
+    $username = htmlspecialchars($_POST['username']);  // renamed variable to match table column
     $account_level = $_POST['account_level'];
 
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
@@ -18,8 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($result->num_rows > 0) {
         $error = "Email already exists.";
     } else {
-        $stmt = $conn->prepare("INSERT INTO users (email, password , nickname , account_level) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $email, $password, $nickname, $account_level);
+        $stmt = $conn->prepare("INSERT INTO users (email, password, username, account_level) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssss", $email, $password, $username, $account_level);
         $stmt->execute();
         $success = "Registration successful!";
     }
@@ -42,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <title>Register</title>
     <link rel="stylesheet" href="style.css">
-    
 </head>
 <body>
 <div class="container">
@@ -62,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
 
             <div class="mb-3">
-                <label for="nickname" class="form-label">Username:</label>
+                <label for="username" class="form-label">Username:</label>
                 <input type="text" id="username" name="username" class="form-control" required>
             </div>
 
@@ -75,10 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Register</button>
-            <p class="text-center">Already have an acoount?</p>
+            <p class="text-center">Already have an account?</p>
             <div class="text-center mt-3">
-            <a href="index.php" class="btn btn-secondary w-100">Login</a>
-        </div> 
+                <a href="index.php" class="btn btn-secondary w-100">Login</a>
+            </div> 
         </form>
     </div>
 </div>

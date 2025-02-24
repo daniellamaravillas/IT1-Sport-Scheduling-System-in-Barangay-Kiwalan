@@ -1,129 +1,158 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+session_start();
+if (!isset($_SESSION['email'])) {
+    header("Location: index.php");
+    exit();
+}
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include 'db.php';
-include 'navigation.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get the event id directly from the select option.
-    $eventID = $_POST['event'] ?? 0;
-    $start_date_time = $_POST['start_date_time'] ?? '';
-    $end_date_time = $_POST['end_date_time'] ?? '';
-    $statusID = $_POST['status'] ?? 0;
-    $ClientID = $_POST['client'] ?? 0;
-
-    $insert_sql = "INSERT INTO Schedule (EventID, start_date_time, end_date_time, StatusID, ClientID) VALUES (?, ?, ?, ?, ?)";
-    $insert_stmt = $conn->prepare($insert_sql);
-    $insert_stmt->bind_param("issss", $eventID, $start_date_time, $end_date_time, $statusID, $ClientID);
-    if ($insert_stmt->execute()) {
-        echo "<script>window.location.href='schedule.php';</script>";
-        exit();
-    } else {
-        echo "Error: " . $insert_stmt->error;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Collect form data
+    $clientName    = trim($_POST['client_name']);
+    $contactNumber = trim($_POST['contact_number']); // treat as string if necessary
+    $location      = trim($_POST['location']);
+    $eventName     = trim($_POST['event_name']);
+    $startDT       = $_POST['start_date_time'];
+    $endDT         = $_POST['end_date_time'];
+    $statusInput   = trim($_POST['status']); // "confirm" or "cancel"
+    
+    $conn->begin_transaction();
+    try {
+        // Look up ClientID by client name using store_result()
+        $stmt = $conn->prepare("SELECT ClientID FROM Clients WHERE clients_name = ? LIMIT 1");
+        $stmt->bind_param("s", $clientName);
+        $stmt->execute();
+        $stmt->store_result();
+        if ($stmt->num_rows == 0) {
+            $stmt->close();
+            // Client not found: insert new client (using ID=1 for default user)
+            $stmt = $conn->prepare("INSERT INTO Clients (clients_name, contact_number, location, ID) VALUES (?, ?, ?, ?)");
+            $defaultUserID = 1;
+            $stmt->bind_param("sssi", $clientName, $contactNumber, $location, $defaultUserID);
+            $stmt->execute();
+            $clientID = $stmt->insert_id;
+            $stmt->close();
+        } else {
+            $stmt->bind_result($clientID);
+            $stmt->fetch();
+            $stmt->close();
+        }
+        
+        // Insert event record
+        $stmt = $conn->prepare("INSERT INTO Events (Events_name, ClientID) VALUES (?, ?)");
+        $stmt->bind_param("si", $eventName, $clientID);
+        $stmt->execute();
+        $eventID = $stmt->insert_id;
+        $stmt->close();
+        
+        // Look up StatusID from Updated_Status using store_result()
+        $stmt = $conn->prepare("SELECT StatusID FROM Updated_Status WHERE updated_status = ? LIMIT 1");
+        $stmt->bind_param("s", $statusInput);
+        $stmt->execute();
+        $stmt->store_result();
+        if ($stmt->num_rows == 0) {
+            $stmt->close();
+            // Status not found: insert the new status into Updated_Status
+            $stmt = $conn->prepare("INSERT INTO Updated_Status (updated_status) VALUES (?)");
+            $stmt->bind_param("s", $statusInput);
+            $stmt->execute();
+            $statusID = $stmt->insert_id;
+            $stmt->close();
+        } else {
+            $stmt->bind_result($statusID);
+            $stmt->fetch();
+            $stmt->close();
+        }
+        
+        // Insert into Schedule with chosen StatusID
+        $stmt = $conn->prepare("INSERT INTO Schedule (start_date_time, end_date_time, EventID, StatusID) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssii", $startDT, $endDT, $eventID, $statusID);
+        $stmt->execute();
+        $scheduleID = $stmt->insert_id; // capture the new ScheduleID
+        $stmt->close();
+        
+        // Commit transaction
+        $conn->commit();
+        
+        // Query the joined details for the inserted schedule
+        $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, us.updated_status 
+        FROM Schedule s 
+        JOIN Events e ON s.EventID = e.EventID 
+        JOIN Clients c ON e.ClientID = c.ClientID 
+        JOIN Updated_Status us ON s.StatusID = us.StatusID 
+        WHERE s.ScheduleID = ?");
+        $stmt->bind_param("i", $scheduleID);
+        $stmt->execute();
+        $result_join = $stmt->get_result();
+        $joined = $result_join->fetch_assoc();
+        $stmt->close();
+        
+        // Show alert with joined details then redirect
+        echo "<script>
+              alert('Schedule added successfully: ID: " . htmlspecialchars($joined['ScheduleID']) . ", Event: " . htmlspecialchars($joined['Events_name']) . ", Client: " . htmlspecialchars($joined['clients_name']) . ", Status: " . htmlspecialchars($joined['updated_status']) . "');
+              window.location.href='calendar.php';
+              </script>";
+    } catch(Exception $e) {
+        $conn->rollback();
+        echo "Error: " . $e->getMessage();
     }
 }
-
-// Database connection settings (reuse same values as in add_event.php)
-$host = '127.0.0.1';
-$db   = 'mariadb';
-$user = 'mariadb';
-$pass = 'mariadb';
-$charset = 'utf8mb4';
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-];
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    exit("Database connection failed: " . $e->getMessage());
-}
-
-// Query events for the select dropdown
-$eventStmt = $pdo->query("SELECT EventID, Events_Name FROM Events ORDER BY Events_Name ASC");
-$availableEvents = $eventStmt->fetchAll();
-
-// Query events from the Schedule table
-$stmt = $pdo->query("SELECT * FROM Schedule ORDER BY start_date_time ASC");
-$events = $stmt->fetchAll();
-
-// Query events from the Updated_Status table
-$statusStmt = $pdo->query("SELECT * FROM Updated_Status ORDER BY updated_status");
-$availableStatuses = $statusStmt->fetchAll();
-
-// Query clients for the select dropdown
-$clientStmt = $pdo->query("SELECT ClientID, clients_name FROM Clients ORDER BY clients_name ASC");
-$availableClients = $clientStmt->fetchAll();
-
 ?>
-
-<!-- Create Schedule Form -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Create Schedule</title>
-    <link rel="stylesheet" href="home.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insert Schedule</title>
+    <link rel="stylesheet" href="calendar.css">
+    <!-- Optional: add Bootstrap if needed -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 </head>
-<body class="bg-light">
-<div class="container mt-5">
-    <div class="card mx-auto" style="max-width: 500px;">
-        <div class="card-header text-center">
-            <h2>Create Schedule</h2>
+<body>
+<div class="container mt-4">
+    <h2>Insert New Schedule</h2>
+    <form method="post" action="">
+        <div class="form-group">
+            <label for="client_name">Name of Client:</label>
+            <input type="text" name="client_name" id="client_name" class="form-control" required>
         </div>
-        <div class="card-body">
-            <form action="create_schedule.php" method="POST">
-                <!-- Replaced two text inputs with a select dropdown showing EventID and Event Name -->
-                <div class="mb-3">
-                    <label for="event" class="form-label">Event</label>
-                    <select name="event" class="form-control" required>
-                        <option value="">Select an event</option>
-                        <?php foreach ($availableEvents as $evt): ?>
-                            <option value="<?= $evt['EventID'] ?>">
-                                <?= $evt['EventID'] ?> - <?= $evt['Events_Name'] ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="start_date_time" class="form-label">Start Date and Time</label>
-                    <input type="datetime-local" name="start_date_time" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label for="end_date_time" class="form-label">End Date and Time</label>
-                    <input type="datetime-local" name="end_date_time" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" class="form-control" required>
-                        <option value="">Select status</option>
-                        <?php foreach ($availableStatuses as $status): ?>
-                            <option value="<?= $status['StatusID'] ?>">
-                                <?= $status['updated_status'] ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="client" class="form-label">Client</label>
-                    <select name="client" class="form-control" required>
-                        <option value="">Select a client</option>
-                        <?php foreach ($availableClients as $client): ?>
-                            <option value="<?= $client['ClientID'] ?>">
-                                <?= $client['clients_name'] ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <!-- Replace the single submit button with two side-by-side buttons -->
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create Schedule</button>
-                </div>
-            </form>
+        <!-- New fields for client contact information -->
+        <div class="form-group">
+            <label for="contact_number">Contact Number:</label>
+            <input type="text" name="contact_number" id="contact_number" class="form-control" required>
         </div>
-    </div>
+        <div class="form-group">
+            <label for="location">Location:</label>
+            <input type="text" name="location" id="location" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="event_name">Event Name:</label>
+            <input type="text" name="event_name" id="event_name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="start_date_time">Start Date/Time:</label>
+            <input type="datetime-local" name="start_date_time" id="start_date_time" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="end_date_time">End Date/Time:</label>
+            <input type="datetime-local" name="end_date_time" id="end_date_time" class="form-control" required>
+        </div>
+        <!-- New status option -->
+        <div class="form-group">
+            <label>Status:</label><br>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="status" id="status_confirm" value="confirm" required>
+                <label class="form-check-label" for="status_confirm">Confirm</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="status" id="status_cancel" value="cancel" required>
+                <label class="form-check-label" for="status_cancel">Cancel</label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
 </div>
 </body>
 </html>

@@ -52,7 +52,7 @@ DROP TABLE IF EXISTS `Events`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Events` (
   `EventID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `Events_name` VARCHAR(255) NOT NULL, -- fixed: changed from text default current_timestamp() to VARCHAR(255)
+  `Events_name` text NOT NULL DEFAULT current_timestamp(),
   `ClientID` bigint(20) NOT NULL,
   PRIMARY KEY (`EventID`),
   KEY `Clients_Events` (`ClientID`),
@@ -108,7 +108,7 @@ DROP TABLE IF EXISTS `Updated_Status`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Updated_Status` (
   `StatusID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `updated_status` TIMESTAMP NOT NULL, -- fixed: changed column type to TIMESTAMP
+  `updated_status` text NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`StatusID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -119,6 +119,10 @@ CREATE TABLE `Updated_Status` (
 
 LOCK TABLES `Updated_Status` WRITE;
 /*!40000 ALTER TABLE `Updated_Status` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Updated_Status` ENABLE KEYS */;
+/*!40000 ALTER TABLE `Updated_Status` DISABLE KEYS */;
+-- Insert initial status values
+INSERT INTO `Updated_Status` (updated_status) VALUES ('confirm'), ('cancel');
 /*!40000 ALTER TABLE `Updated_Status` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -164,10 +168,10 @@ CREATE TABLE `users` (
   `ID` bigint(20) NOT NULL AUTO_INCREMENT,
   `email` varchar(50) NOT NULL,
   `password` varchar(60) NOT NULL,
-  `nickname` varchar(40) NOT NULL,
-  `acoount_level` varchar(40) NOT NULL,
+  `username` varchar(40) NOT NULL,
+  `account_level` varchar(40) NOT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -176,6 +180,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES (1,'Aron@yahoo.com','$2y$10$TWWXV2nM.sjVHD3R98PJVOeJfl2pkkcioH.QupH05APDbpFyat6ty','Aron','admin');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -188,4 +193,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-02-23 11:32:00
+-- Dump completed on 2025-02-24  1:13:04
