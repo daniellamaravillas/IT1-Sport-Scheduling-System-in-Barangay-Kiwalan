@@ -41,6 +41,7 @@ $result = $stmt->get_result();
               <th>End</th>
               <th>Status</th>
               <th>Event</th>
+              <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -53,6 +54,10 @@ $result = $stmt->get_result();
               <td><?php echo htmlspecialchars(date('F j, Y, g:i a', strtotime($row['end_date_time']))); ?></td>
               <td><?php echo htmlspecialchars($row['updated_status']); ?></td>
               <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
+              <td>
+                <a href='edit_schedule.php?ScheduleID=<?php echo $row['ScheduleID']; ?>' class='btn btn-sm btn-primary'>Edit</a>
+                <a href='delete_schedule.php?ScheduleID=<?php echo $row['ScheduleID']; ?>' class='btn btn-sm btn-danger'>Delete</a>
+              </td>
             </tr>
         <?php endwhile; ?>
         </tbody>

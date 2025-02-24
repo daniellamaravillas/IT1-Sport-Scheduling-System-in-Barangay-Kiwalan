@@ -116,9 +116,22 @@ while ($row = $result->fetch_assoc()) {
             echo "<td onclick=\"window.location.href='insert_schedule.php?year={$year}&month={$month}&day={$day}'\" style='cursor:pointer;'>";
             echo $day;
             if (isset($bookings[$currentCellDate])) {
-                // Display booking mark and number of bookings
-                $count = count($bookings[$currentCellDate]);
-                echo " <span class='badge badge-danger' style='cursor:pointer;' onclick=\"event.stopPropagation(); loadBookings('{$currentCellDate}');\">Booked ({$count})</span><br>";
+                // Count active and cancelled appointments
+                $activeCount = 0;
+                $cancelCount = 0;
+                foreach ($bookings[$currentCellDate] as $appointment) {
+                    if (strtolower($appointment['updated_status']) === 'cancel') {
+                        $cancelCount++;
+                    } else {
+                        $activeCount++;
+                    }
+                }
+                if ($activeCount > 0) {
+                    echo " <span class='badge badge-danger' style='cursor:pointer;' onclick=\"event.stopPropagation(); loadBookings('{$currentCellDate}');\">Booked ({$activeCount})</span>";
+                }
+                if ($cancelCount > 0) {
+                    echo " <span class='badge badge-secondary' style='cursor:pointer;' onclick=\"event.stopPropagation(); loadBookings('{$currentCellDate}');\">Cancelled ({$cancelCount})</span>";
+                }
             }
             echo "</td>";
             $cell++;
