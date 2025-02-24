@@ -54,9 +54,16 @@ while ($row = $result->fetch_assoc()) {
     <style>
         table { border-collapse: collapse; width:100%; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .highlight {
+            background-color: yellow;
+            color: black;
+            border: 2px solid red;
+            padding: 4px;
+            border-radius: 4px;
+        }
     </style>
     <!-- Added Bootstrap JS and jQuery -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script>
       // Function to load booking details for a given date and show modal
@@ -74,6 +81,12 @@ while ($row = $result->fetch_assoc()) {
               }
           });
       }
+
+      $(document).ready(function(){
+          $('#currentMonthYear').on('click', function() {
+              $(this).toggleClass('highlight');
+          });
+      });
     </script>
 </head>
 <body>
@@ -81,12 +94,12 @@ while ($row = $result->fetch_assoc()) {
     <h2>Calendar Schedule</h2>
     <div class="navigation">
         <a href="?year=<?php echo $prev->format('Y'); ?>&month=<?php echo $prev->format('n'); ?>">Previous</a>
-        <span><?php echo $currentDate->format('F Y'); ?></span>
+        <span id="currentMonthYear"><?php echo $currentDate->format('F Y'); ?></span>
         <a href="?year=<?php echo $next->format('Y'); ?>&month=<?php echo $next->format('n'); ?>">Next</a>
     </div>
     <table>
         <tr>
-            <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed><th>Thu</th><th>Fri</th><th>Sat</th>
+            <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
         </tr>
         <?php
         // Start building the calendar grid.
@@ -114,3 +127,23 @@ while ($row = $result->fetch_assoc()) {
             }
         }
         // Fill in the remaining cells of the last week.
+        while ($cell % 7 != 0) {
+            echo "<td></td>";
+            $cell++;
+        }
+        echo "</tr>";
+        ?>
+    </table>
+    <!-- Optionally, include further calendar functionality -->
+</div>
+
+<!-- Bootstrap Modal for View Schedule Details -->
+<div class="modal fade" id="bookingModal" tabindex="-1" role="dialog" aria-labelledby="bookingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content" id="bookingModalContent">
+      <!-- AJAX loaded view schedule details will appear here -->
+    </div>
+  </div>
+</div>
+</body>
+</html>
