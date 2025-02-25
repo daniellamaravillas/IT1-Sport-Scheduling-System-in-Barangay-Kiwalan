@@ -93,13 +93,13 @@ while ($row = $result->fetch_assoc()) {
 </head>
 <body>
 <div class="container">
-    <h2>Calendar Schedule</h2>
-    <div class="navigation">
-        <a href="?year=<?php echo $prev->format('Y'); ?>&month=<?php echo $prev->format('n'); ?>">Previous</a>
+    <center><h2>Calendar Schedule</h2></center>
+    <div class="navigation text-center">
+        <a href="?year=<?php echo $prev->format('Y'); ?>&month=<?php echo $prev->format('n'); ?>" class="btn btn-primary">Previous</a>
         <span id="currentMonthYear"><?php echo $currentDate->format('F Y'); ?></span>
-        <a href="?year=<?php echo $next->format('Y'); ?>&month=<?php echo $next->format('n'); ?>">Next</a>
+        <a href="?year=<?php echo $next->format('Y'); ?>&month=<?php echo $next->format('n'); ?>" class="btn btn-primary">Next</a>
     </div>
-    <table>
+    <table style="margin: 0 auto;">
         <tr>
             <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
         </tr>

@@ -233,9 +233,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <table class="table table-bordered table-sm">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Event</th>
+                         
+                           
                             <th>Client</th>
+                            <th>Event</th>
+                            <th>Location</th>
+                            <th>Contact Number</th>
                             <th>Start</th>
                             <th>End</th>
                             <th>Action</th>
@@ -244,9 +247,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <tbody>
                     <?php while($row = $pendingResult->fetch_assoc()) { ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($row['ScheduleID']); ?></td>
-                            <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
+                           
                             <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['Event_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['location']); ?></td>
+                            <td><?php echo htmlspecialchars($row['contact_number']); ?></td>    
                             <td><?php echo htmlspecialchars($row['start_date_time']); ?></td>
                             <td><?php echo htmlspecialchars($row['end_date_time']); ?></td>
                             <td>
