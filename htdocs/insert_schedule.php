@@ -216,58 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php } ?>
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
-    
-    <?php if($accountLevel === 'admin') { 
-        // Admin view: list pending requests with options to accept or decline
-        // Updated SQL query to fetch event alias and client details
-        $pendingSql = "SELECT s.ScheduleID, e.Events_name as Event_name, c.clients_name, c.location, c.contact_number, s.start_date_time, s.end_date_time 
-                       FROM Schedule s
-                       JOIN Events e ON s.EventID = e.EventID
-                       JOIN Clients c ON e.ClientID = c.ClientID
-                       JOIN Updated_Status us ON s.StatusID = us.StatusID
-                       WHERE us.updated_status = 'pending'
-                       ORDER BY s.ScheduleID DESC";
-        $pendingResult = $conn->query($pendingSql);
-        if($pendingResult->num_rows > 0) { ?>
-            <div class="mt-4">
-                <h3>Pending Requests</h3>
-                <table class="table table-bordered table-sm">
-                    <thead>
-                        <tr>
-                         
-                           
-                            <th>Client</th>
-                            <th>Event</th>
-                            <th>Location</th>
-                            <th>Contact Number</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php while($row = $pendingResult->fetch_assoc()) { ?>
-                        <tr>
-                           
-                            <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
-                            <td><?php echo htmlspecialchars($row['Event_name']); ?></td>
-                            <td><?php echo htmlspecialchars($row['location']); ?></td>
-                            <td><?php echo htmlspecialchars($row['contact_number']); ?></td>    
-                            <td><?php echo htmlspecialchars($row['start_date_time']); ?></td>
-                            <td><?php echo htmlspecialchars($row['end_date_time']); ?></td>
-                            <td>
-                                <a href="accept_request.php?id=<?php echo urlencode($row['ScheduleID']); ?>" class="btn btn-sm btn-success">Accept</a>
-                                <a href="decline_request.php?id=<?php echo urlencode($row['ScheduleID']); ?>" class="btn btn-sm btn-danger">Decline</a>
-                            </td>
-                        </tr>
-                    <?php } ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php } else { ?>
-            <p class="mt-4">No pending requests.</p>
-        <?php } 
-    } ?>
 </div>
 </body>
 </html>

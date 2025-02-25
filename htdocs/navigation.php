@@ -1,3 +1,16 @@
+<?php
+
+include 'db.php';
+
+$pendingCount = 0;
+if (isset($_SESSION['account_level']) && $_SESSION['account_level'] === 'admin') {
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM Schedule s JOIN Updated_Status us ON s.StatusID = us.StatusID WHERE us.updated_status = 'pending'");
+    $stmt->execute();
+    $stmt->bind_result($pendingCount);
+    $stmt->fetch();
+    $stmt->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,6 +156,10 @@
             }
         }
     </style>
+    <!-- Add Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Bootstrap CSS for alerts and badges -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 </head>
 <body>
 
@@ -151,8 +168,17 @@
             <a href="index.php" class="navbar-logo">Barangay Kiwalan Sport Scheduling</a>
             <ul class="navbar-menu">
                 <li><a href="homepage.php">Home</a></li>
-                <li><a href="notifications.php">Notification</a></li>
-                <li><a href="schedule.php">View Schedule</a></li>
+                <li>
+                    <a href="pending.php">
+                        <i class="fas fa-bell"></i> Notification
+                        <?php if($pendingCount > 0){ ?>
+                           <span class="badge badge-danger"><?php echo $pendingCount; ?></span>
+                        <?php } ?>
+                    </a>
+                </li>
+                <?php if(isset($_SESSION['account_level']) && $_SESSION['account_level'] === 'admin'){ ?>
+                    <li><a href="schedule.php">View Schedule</a></li>
+                <?php } ?>
             </ul>
             <div class="dropdown">
                 <button class="dropbtn">&#9881;</button>
@@ -164,5 +190,17 @@
             </div>
         </div>
     </nav>
+    <?php 
+    // Display alert message for accepted/declined notifications if set
+    if(isset($_SESSION['alert_message'])) { ?>
+        <div class="container mt-2">
+            <div class="alert alert-info" role="alert">
+                <?php echo $_SESSION['alert_message']; ?>
+            </div>
+        </div>
+    <?php 
+        unset($_SESSION['alert_message']);
+    } 
+    ?>
 </body>
 </html>
