@@ -219,7 +219,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <?php if($accountLevel === 'admin') { 
         // Admin view: list pending requests with options to accept or decline
-        $pendingSql = "SELECT s.ScheduleID, e.Events_name, c.clients_name, s.start_date_time, s.end_date_time 
+        // Updated SQL query to fetch event alias and client details
+        $pendingSql = "SELECT s.ScheduleID, e.Events_name as Event_name, c.clients_name, c.location, c.contact_number, s.start_date_time, s.end_date_time 
                        FROM Schedule s
                        JOIN Events e ON s.EventID = e.EventID
                        JOIN Clients c ON e.ClientID = c.ClientID
