@@ -150,7 +150,7 @@
             <a href="index.php" class="navbar-logo">Barangay Kiwalan Sport Scheduling</a>
             <ul class="navbar-menu">
                 <li><a href="homepage.php">Home</a></li>
-                <li><a href="insert_client.php">Create Schedule</a></li>
+                <li><a href="notification.php">Notification</a></li>
                 <li><a href="schedule.php">View Schedule</a></li>
             </ul>
             <div class="dropdown">

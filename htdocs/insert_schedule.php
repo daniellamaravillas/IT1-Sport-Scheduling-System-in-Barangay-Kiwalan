@@ -1,12 +1,55 @@
 <?php
 session_start();
+include 'db.php';
+// New view mode: show schedule details for a given date with a close button
+if (isset($_GET['viewSchedules']) && $_GET['viewSchedules'] == 1 && isset($_GET['date'])) {
+    $date = $_GET['date'];
+    $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, us.updated_status 
+                            FROM Schedule s 
+                            JOIN Events e ON s.EventID = e.EventID 
+                            JOIN Clients c ON e.ClientID = c.ClientID 
+                            JOIN Updated_Status us ON s.StatusID = us.StatusID 
+                            WHERE DATE(s.start_date_time) = ? 
+                            ORDER BY s.start_date_time ASC");
+    $stmt->bind_param("s", $date);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    echo "<h2>Schedule Details for " . htmlspecialchars($date) . "</h2>";
+    echo "<table class='table table-bordered'>";
+    echo "<thead><tr>
+             <th>Schedule ID</th>
+             <th>Event</th>
+             <th>Client</th>
+             <th>Status</th>
+             <th>Start Date/Time</th>
+             <th>End Date/Time</th>
+          </tr></thead><tbody>";
+    while ($row = $result->fetch_assoc()) {
+        echo "<tr>
+                <td>" . htmlspecialchars($row['ScheduleID']) . "</td>
+                <td>" . htmlspecialchars($row['Events_name']) . "</td>
+                <td>" . htmlspecialchars($row['clients_name']) . "</td>
+                <td>" . htmlspecialchars($row['updated_status']) . "</td>
+                <td>" . htmlspecialchars($row['start_date_time']) . "</td>
+                <td>" . htmlspecialchars($row['end_date_time']) . "</td>
+              </tr>";
+    }
+    echo "</tbody></table>";
+    // Add a close button, styled with Bootstrap and custom CSS if needed
+    echo "<div class='text-center mt-3'>";
+    echo "<button type='button' class='btn btn-secondary btn-close' onclick=\"window.location.href='calendar.php';\">Close</button>";
+    echo "</div>";
+    exit();
+}
+
+$accountLevel = $_SESSION['account_level'] ?? 'user'; // added account level check
+
 if (!isset($_SESSION['email'])) {
     header("Location: index.php");
     exit();
 }
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-include 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Collect form data
@@ -17,7 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startDT       = $_POST['start_date_time'];
     $endDT         = $_POST['end_date_time'];
     $statusInput   = trim($_POST['status']); // "confirm" or "cancel"
-    
+
+    // If not admin force pending request
+    if ($accountLevel !== 'admin') {
+        $statusInput = 'pending';
+    }
+
     $conn->begin_transaction();
     try {
         // Look up ClientID by client name using store_result()
@@ -74,26 +122,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         
         // Commit transaction
+
         $conn->commit();
-        
-        // Query the joined details for the inserted schedule
-        $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, us.updated_status 
-        FROM Schedule s 
-        JOIN Events e ON s.EventID = e.EventID 
-        JOIN Clients c ON e.ClientID = c.ClientID 
-        JOIN Updated_Status us ON s.StatusID = us.StatusID 
-        WHERE s.ScheduleID = ?");
-        $stmt->bind_param("i", $scheduleID);
-        $stmt->execute();
-        $result_join = $stmt->get_result();
-        $joined = $result_join->fetch_assoc();
-        $stmt->close();
-        
-        // Show alert with joined details then redirect
-        echo "<script>
-              alert('Schedule added successfully: ID: " . htmlspecialchars($joined['ScheduleID']) . ", Event: " . htmlspecialchars($joined['Events_name']) . ", Client: " . htmlspecialchars($joined['clients_name']) . ", Status: " . htmlspecialchars($joined['updated_status']) . "');
-              window.location.href='calendar.php';
-              </script>";
+
+        // Check if the schedule status is pending
+        if ($statusInput === 'pending') {
+            echo "<script>
+                  alert('Schedule request submitted successfully. Please wait for admin approval.');
+                  window.location.href='calendar.php';
+                  </script>";
+        } else {
+            // Query the joined details for the inserted schedule (for non-pending status)
+            $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, us.updated_status 
+            FROM Schedule s 
+            JOIN Events e ON s.EventID = e.EventID 
+            JOIN Clients c ON e.ClientID = c.ClientID 
+            JOIN Updated_Status us ON s.StatusID = us.StatusID 
+            WHERE s.ScheduleID = ?");
+            $stmt->bind_param("i", $scheduleID);
+            $stmt->execute();
+            $result_join = $stmt->get_result();
+            $joined = $result_join->fetch_assoc();
+            $stmt->close();
+            
+            echo "<script>
+                  alert('Schedule added successfully: ID: " . htmlspecialchars($joined['ScheduleID']) . ", Event: " . htmlspecialchars($joined['Events_name']) . ", Client: " . htmlspecialchars($joined['clients_name']) . ", Status: " . htmlspecialchars($joined['updated_status']) . "');
+                  window.location.href='calendar.php';
+                  </script>";
+        }
     } catch(Exception $e) {
         $conn->rollback();
         echo "Error: " . $e->getMessage();
@@ -106,9 +162,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insert Schedule</title>
-    <link rel="stylesheet" href="calendar.css">
-    <!-- Optional: add Bootstrap if needed -->
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- Custom Calendar and View Schedule CSS -->
+    <link rel="stylesheet" href="calendar.css">
+    <link rel="stylesheet" href="custom_bootstrap.css">
 </head>
 <body>
 <div class="container mt-4">
@@ -139,20 +197,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="end_date_time">End Date/Time:</label>
             <input type="datetime-local" name="end_date_time" id="end_date_time" class="form-control" required>
         </div>
-        <!-- New status option -->
-        <div class="form-group">
-            <label>Status:</label><br>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="status" id="status_confirm" value="confirm" required>
-                <label class="form-check-label" for="status_confirm">Confirm</label>
+        <!-- Show status option only for admin; else force pending -->
+        <?php if ($accountLevel === 'admin') { ?>
+            <div class="form-group">
+                <label>Status:</label><br>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="status" id="status_confirm" value="confirm" required>
+                    <label class="form-check-label" for="status_confirm">Confirm</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="status" id="status_cancel" value="cancel" required>
+                    <label class="form-check-label" for="status_cancel">Cancel</label>
+                </div>
             </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="status" id="status_cancel" value="cancel" required>
-                <label class="form-check-label" for="status_cancel">Cancel</label>
-            </div>
-        </div>
+        <?php } else { ?>
+            <input type="hidden" name="status" value="pending" />
+            <p>Status: Pending request (awaiting admin approval)</p>
+        <?php } ?>
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
+    
+    <?php if($accountLevel === 'admin') { 
+        // Admin view: list pending requests with options to accept or decline
+        $pendingSql = "SELECT s.ScheduleID, e.Events_name, c.clients_name, s.start_date_time, s.end_date_time 
+                       FROM Schedule s
+                       JOIN Events e ON s.EventID = e.EventID
+                       JOIN Clients c ON e.ClientID = c.ClientID
+                       JOIN Updated_Status us ON s.StatusID = us.StatusID
+                       WHERE us.updated_status = 'pending'
+                       ORDER BY s.ScheduleID DESC";
+        $pendingResult = $conn->query($pendingSql);
+        if($pendingResult->num_rows > 0) { ?>
+            <div class="mt-4">
+                <h3>Pending Requests</h3>
+                <table class="table table-bordered table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Event</th>
+                            <th>Client</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php while($row = $pendingResult->fetch_assoc()) { ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($row['ScheduleID']); ?></td>
+                            <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['start_date_time']); ?></td>
+                            <td><?php echo htmlspecialchars($row['end_date_time']); ?></td>
+                            <td>
+                                <a href="accept_request.php?id=<?php echo urlencode($row['ScheduleID']); ?>" class="btn btn-sm btn-success">Accept</a>
+                                <a href="decline_request.php?id=<?php echo urlencode($row['ScheduleID']); ?>" class="btn btn-sm btn-danger">Decline</a>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php } else { ?>
+            <p class="mt-4">No pending requests.</p>
+        <?php } 
+    } ?>
 </div>
 </body>
 </html>
