@@ -35,125 +35,70 @@ $username = $user ? htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') : "
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* General Styling */
-body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(to right, #FFEDD5, #FFE4C4);
-    color: #5A3E36;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-/* Container */
-.container {
-    max-width: 500px;
-    padding: 20px;
-}
-
-/* Card Styling */
-.card {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    transition: 0.3s;
-}
-
-.card:hover {
-    transform: scale(1.02);
-    box-shadow: 0px 15px 30px rgba(0, 0, 0, 0.15);
-}
-
-/* Card Header */
-.card-header {
-    background: #E76F51;
-    color: white;
-    padding: 20px;
-    font-size: 22px;
-    font-weight: bold;
-    text-align: center;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-}
-
-/* Card Body */
-.card-body {
-    padding: 25px;
-    text-align: center;
-}
-
-.card-body h3 {
-    font-size: 24px;
-    color: #E76F51;
-    margin-bottom: 10px;
-}
-
-.card-body p {
-    font-size: 16px;
-    color: #6D4C41;
-}
-
-/* Card Footer */
-.card-footer {
-    background: #FFE4C4;
-    padding: 15px;
-    border-bottom-left-radius: 15px;
-    border-bottom-right-radius: 15px;
-}
-
-/* Button Styling */
-.btn-primary {
-    background: linear-gradient(to right, #FF8A5B, #E76F51);
-    border: none;
-    padding: 12px 20px;
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-    border-radius: 10px;
-    transition: 0.3s;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(to right, #E76F51, #D45D41);
-    box-shadow: 0px 5px 15px rgba(231, 111, 81, 0.5);
-    transform: scale(1.05);
-}
-
-/* Responsive Design */
-@media (max-width: 600px) {
-    .container {
-        max-width: 90%;
-    }
-    
-    .card-header {
-        font-size: 20px;
-    }
-    
-    .btn-primary {
-        font-size: 16px;
-        padding: 10px;
-    }
-}
-
+        .highlight-red {
+            background-color: #f8d7da;
+            border: 2px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .highlight-blue {
+            background-color: #d1ecf1;
+            border: 2px solid #bee5eb;
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
-<div class="container mt-4">
+<div class="container mt-4 text-center">
     <div class="card">
-        <div class="card-header">
+        <div class="card-header text-center">
             <h2>Welcome, <?php echo $username; ?>!</h2>
         </div>
-        <div class="card-body">
-            <h3>Barangay Kiwalan Sport Scheduling</h3>
+        <div class="card-body text-center">
             <p>Here you can find the latest schedules for sports events.</p>
             <p>Explore the different events available in our community.</p>
-        </div>
-        <div class="card-footer text-center">
-            <button class="btn btn-primary w-100" onclick="window.location.href='calendar.php'">View Calendar</button>
+            <?php
+            // Query today's schedule with person (client) details
+            $today = date('Y-m-d');
+            $queryToday = "SELECT s.ScheduleID, s.start_date_time, e.Events_name, c.clients_name 
+                           FROM Schedule s 
+                           JOIN Events e ON s.EventID = e.EventID 
+                           JOIN Clients c ON e.ClientID = c.ClientID 
+                           WHERE DATE(s.start_date_time) = ?";
+            if($stmtToday = $conn->prepare($queryToday)) {
+                $stmtToday->bind_param("s", $today);
+                $stmtToday->execute();
+                $resultToday = $stmtToday->get_result();
+                // Use red highlight if schedule exists; blue if not.
+                $highlightClass = ($resultToday->num_rows > 0) ? 'highlight-red' : 'highlight-blue';
+                ?>
+                <div class="<?php echo $highlightClass; ?>">
+                    <h4>Today's Schedule (<?php echo date('l, F j, Y'); ?>):</h4>
+                    <?php if($resultToday->num_rows > 0): ?>
+                        <ul class="list-group">
+                            <?php while($row = $resultToday->fetch_assoc()): ?>
+                                <li class="list-group-item">
+                                    <?php 
+                                    $time = date('h:i A', strtotime($row['start_date_time']));
+                                    echo "{$row['Events_name']} at {$time} - Scheduled for: " . htmlspecialchars($row['clients_name']);
+                                    ?>
+                                </li>
+                            <?php endwhile; ?>
+                        </ul>
+                        <!-- Added button below the schedule list -->
+                        <button class="btn btn-primary btn-sm mt-2" onclick="window.location.href='calendar.php'">View Schedule</button>
+                    <?php else: ?>
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            <p class="mb-0">No event scheduled for today.</p>
+                            <button class="btn btn-primary btn-sm ml-2" onclick="window.location.href='calendar.php'">View Schedule</button>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php 
+                $stmtToday->close();
+            }
+            ?>
         </div>
     </div>
 </div>

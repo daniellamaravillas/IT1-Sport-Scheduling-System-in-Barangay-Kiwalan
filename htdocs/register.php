@@ -68,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="mb-3">
                 <label for="account_level" class="form-label">Account Level:</label>
                 <select id="account_level" name="account_level" class="form-control" required>
-                    <option value="user">User</option>
                     <option value="admin">Admin</option>
                 </select>
             </div>
