@@ -26,9 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 <head>
     <title>Login</title>
-    <link rel="stylesheet" href="style.css">
-    
-    
+    <!-- Added Bootstrap CSS -->
+   <link rel="stylesheet" href="styles.css">
+    <!-- ...existing head content... -->
 </head>
 <body>
 <div class="container">
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form> <br>
         <p class="text-center">Don't have an account?</p> 
         <div class="text-center mt-3">
-            <a href="register.php" class="btn btn-secondary w-100">Register</a>
+            <a href="" class="btn btn-secondary w-100">Register</a>
         </div>
     </div>
 </div>

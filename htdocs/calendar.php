@@ -191,26 +191,13 @@ $currentDateStr = date('Y-m-d');
                 $classString = implode(" ", $classes);
                 echo "<td class='$classString' onclick=\"window.location.href='schedule_detail.php?date={$currentCellDate}'\">";
                 echo $day;
-                if (isset($bookings[$currentCellDate])) {
+                // Highlight schedule only for the present day
+                if ($currentCellDate == $currentDateStr && isset($bookings[$currentCellDate])) {
                     $numSchedules = count($bookings[$currentCellDate]);
-                    echo "<span class='schedule-count'>{$numSchedules}</span>";
-                    $firstEvent = $bookings[$currentCellDate][0]['Events_name'];
-                    // Transform event name for confirmed schedules
-                    if (strtolower($firstEvent) === 'badminton') {
-                        $firstEvent = 'Confirmed';
-                    }
-                    // Determine status class based on event name
-                    if ($firstEvent === 'Confirmed') {
-                        $statusClass = 'schedule-confirm';
-                    } elseif (strtolower($firstEvent) === 'cancelled' || strtolower($firstEvent) === 'cancel') {
-                        $statusClass = 'schedule-cancel';
-                    } else {
-                        $statusClass = ''; // optional: leave unstyled or add default styling
-                    }
-                    if ($statusClass) {
-                        echo "<div class='{$statusClass}'>{$firstEvent}</div>";
-                    } else {
-                        echo "<div>{$firstEvent}</div>";
+                    if ($numSchedules == 1) {
+                        echo "<div class='schedule-count'>1</div>";
+                    } elseif ($numSchedules == 2) {
+                        echo "<div class='schedule-count'>2</div>";
                     }
                 }
                 echo "</td>";

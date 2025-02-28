@@ -46,6 +46,7 @@ $count = $result->num_rows;
                         </li>
                     <?php endwhile; ?>
                 </ul>
+                <a href="schedule.php" class="btn btn-primary mt-2">View Schedule</a>
             </div>
         <?php else: ?>
             <div class="alert alert-secondary" role="alert">

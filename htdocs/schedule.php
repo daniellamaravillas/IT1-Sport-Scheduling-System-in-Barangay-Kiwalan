@@ -31,7 +31,7 @@ $result = $conn->query($query);
 </head>
 <body>
 <div class="container mt-4">
-    <h2 class="mb-4">Schedule Table</h2>
+    <center><h2 class="mb-4">List of the Schedule</h2></center>
     <!-- Added search form -->
     <form method="get" action="schedule.php" class="mb-4">
         <div class="input-group">
