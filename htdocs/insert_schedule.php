@@ -1,6 +1,9 @@
 <?php
 session_start();
 include 'db.php';
+
+$errorMsg = '';
+
 // New view mode: show schedule details for a given date with a close button
 if (isset($_GET['viewSchedules']) && $_GET['viewSchedules'] == 1 && isset($_GET['date'])) {
     $date = $_GET['date'];
@@ -54,7 +57,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Collect form data
     $clientName    = trim($_POST['client_name']);
-    $contactNumber = trim($_POST['contact_number']); // treat as string if necessary
+    $contactNumber = trim($_POST['contact_number']);
     $location      = trim($_POST['location']);
     $eventName     = trim($_POST['event_name']);
     $startDT       = $_POST['start_date_time'];
@@ -68,6 +71,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $conn->begin_transaction();
     try {
+        // Validate that the end datetime is after the start datetime
+        if (strtotime($startDT) >= strtotime($endDT)) {
+            throw new Exception("Error: End date/time must be after the start date/time.");
+        }
+
+        // Check if a schedule already exists with the same start and end datetime
+        $stmtConflict = $conn->prepare("SELECT ScheduleID FROM Schedule WHERE start_date_time = ? AND end_date_time = ?");
+        $stmtConflict->bind_param("ss", $startDT, $endDT);
+        $stmtConflict->execute();
+        $stmtConflict->store_result();
+        if ($stmtConflict->num_rows > 0) {
+            $stmtConflict->close();
+            throw new Exception("Error: The selected schedule slot is already taken. Please choose a different date/time.");
+        }
+        $stmtConflict->close();
+        
         // Look up ClientID by client name using store_result()
         $stmt = $conn->prepare("SELECT ClientID FROM Clients WHERE clients_name = ? LIMIT 1");
         $stmt->bind_param("s", $clientName);
@@ -118,11 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO Schedule (start_date_time, end_date_time, EventID, StatusID) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("ssii", $startDT, $endDT, $eventID, $statusID);
         $stmt->execute();
-        $scheduleID = $stmt->insert_id; // capture the new ScheduleID
+        $scheduleID = $stmt->insert_id;
         $stmt->close();
         
         // Commit transaction
-
         $conn->commit();
 
         // Check if the schedule status is pending
@@ -131,14 +149,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   alert('Schedule request submitted successfully. Please wait for admin approval.');
                   window.location.href='calendar.php';
                   </script>";
+            exit();
         } else {
             // Query the joined details for the inserted schedule (for non-pending status)
             $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, us.updated_status 
-            FROM Schedule s 
-            JOIN Events e ON s.EventID = e.EventID 
-            JOIN Clients c ON e.ClientID = c.ClientID 
-            JOIN Updated_Status us ON s.StatusID = us.StatusID 
-            WHERE s.ScheduleID = ?");
+                                    FROM Schedule s 
+                                    JOIN Events e ON s.EventID = e.EventID 
+                                    JOIN Clients c ON e.ClientID = c.ClientID 
+                                    JOIN Updated_Status us ON s.StatusID = us.StatusID 
+                                    WHERE s.ScheduleID = ?");
             $stmt->bind_param("i", $scheduleID);
             $stmt->execute();
             $result_join = $stmt->get_result();
@@ -149,10 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   alert('Schedule added successfully: ID: " . htmlspecialchars($joined['ScheduleID']) . ", Event: " . htmlspecialchars($joined['Events_name']) . ", Client: " . htmlspecialchars($joined['clients_name']) . ", Status: " . htmlspecialchars($joined['updated_status']) . "');
                   window.location.href='calendar.php';
                   </script>";
+            exit();
         }
-    } catch(Exception $e) {
+    } catch (Exception $e) {
         $conn->rollback();
-        echo "Error: " . $e->getMessage();
+        $errorMsg = $e->getMessage();
     }
 }
 ?>
@@ -162,99 +182,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insert Schedule</title>
-    <!-- Bootstrap CSS -->
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Bootstrap CSS (optional for better alert styling) -->
     <style>
         /* General Page Styling */
-body {
-    font-family: Arial, sans-serif;
-    background-color: #d9ede4; /* Soft mint green background */
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-}
-
-.container {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    width: 50%;
-    max-width: 600px;
-}
-
-h2 {
-    text-align: center;
-    color: #333;
-}
-
-/* Form Styling */
-.form-group {
-    margin-bottom: 15px;
-}
-
-label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 5px;
-}
-
-input[type="text"],
-input[type="datetime-local"],
-select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-}
-
-/* Button Styling */
-.btn-primary {
-    background-color: #4caf50; /* Green color similar to the survey form */
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    display: block;
-    width: 100%;
-    text-align: center;
-}
-
-.btn-primary:hover {
-    background-color: #45a049;
-}
-
-/* Status Radio Buttons */
-.form-check-label {
-    font-weight: normal;
-    margin-left: 5px;
-}
-
-/* Close Button */
-.btn-close {
-    background-color: #bbb;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.btn-close:hover {
-    background-color: #999;
-}
-
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #d9ede4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            width: 50%;
+            max-width: 600px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        /* Alert Styling */
+        .alert {
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        /* Button Styling */
+        .btn-primary {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        /* Enhanced Radio Button Group Styling */
+        .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+        .radio-group input[type="radio"] {
+            display: none;
+        }
+        .radio-group label {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .radio-group input[type="radio"]:checked + label {
+            background-color: #4caf50;
+            border-color: #4caf50;
+            color: white;
+        }
+        /* Close Button */
+        .btn-close {
+            background-color: #bbb;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-close:hover {
+            background-color: #999;
+        }
     </style>
 </head>
 <body>
 <div class="container mt-4">
     <h2>Insert New Schedule</h2>
+    <?php if (!empty($errorMsg)) { ?>
+        <div class="alert"><?php echo htmlspecialchars($errorMsg); ?></div>
+    <?php } ?>
     <form method="post" action="">
         <div class="form-group">
             <label for="client_name">Name of Client:</label>
@@ -275,23 +309,23 @@ select {
         </div>
         <div class="form-group">
             <label for="start_date_time">Start Date/Time:</label>
-            <input type="datetime-local" name="start_date_time" id="start_date_time" class="form-control" required>
+            <!-- Changed type to text for Flatpickr -->
+            <input type="text" name="start_date_time" id="start_date_time" class="form-control" required>
         </div>
         <div class="form-group">
             <label for="end_date_time">End Date/Time:</label>
-            <input type="datetime-local" name="end_date_time" id="end_date_time" class="form-control" required>
+            <!-- Changed type to text for Flatpickr -->
+            <input type="text" name="end_date_time" id="end_date_time" class="form-control" required>
         </div>
-        <!-- Show status option only for admin; else force pending -->
+        <!-- Enhanced status radio buttons for admin -->
         <?php if ($accountLevel === 'admin') { ?>
             <div class="form-group">
-                <label>Status:</label><br>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="status" id="status_confirm" value="confirm" required>
-                    <label class="form-check-label" for="status_confirm">Confirm</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="status" id="status_cancel" value="cancel" required>
-                    <label class="form-check-label" for="status_cancel">Cancel</label>
+                <label>Status:</label>
+                <div class="radio-group">
+                    <input type="radio" name="status" id="status_confirm" value="confirm" required>
+                    <label for="status_confirm">Confirm</label>
+                    <input type="radio" name="status" id="status_cancel" value="cancel" required>
+                    <label for="status_cancel">Cancel</label>
                 </div>
             </div>
         <?php } else { ?>
@@ -301,5 +335,22 @@ select {
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    const startPicker = flatpickr("#start_date_time", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        onChange: function(selectedDates) {
+            if (selectedDates.length) {
+                endPicker.set("minDate", selectedDates[0]);
+            }
+        }
+    });
+    const endPicker = flatpickr("#end_date_time", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i"
+    });
+</script>
 </body>
 </html>
