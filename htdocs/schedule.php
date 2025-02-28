@@ -69,15 +69,15 @@ $result = $conn->query($query);
             <tbody>
                 <?php if($result->num_rows > 0): ?>
                     <?php while($row = $result->fetch_assoc()):
-                          $currentTime = time();
-                          $scheduleStart = strtotime($row['start_date_time']);
-                          $scheduleEnd   = strtotime($row['end_date_time']);
-                          $rowClass = ($currentTime >= $scheduleStart && $currentTime <= $scheduleEnd) ? "table-warning" : "table-success";
-                          $startFormatted = date("l, F j, Y g:i A", $scheduleStart);
-                          $endFormatted   = date("l, F j, Y g:i A", $scheduleEnd);
+                          $startFormatted = date("l, F j, Y g:i A", strtotime($row['start_date_time']));
+                          $endFormatted   = date("l, F j, Y g:i A", strtotime($row['end_date_time']));
                     ?>
-                        <tr class="<?php echo $rowClass; ?>">
+                        <tr>
                             <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
+                            <td><?php echo htmlspecialchars($row['location']); ?></td>
+                            <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
+                            <td><?php echo $startFormatted; ?></td>
                             <td><?php echo $endFormatted; ?></td>
                         </tr>
                     <?php endwhile; ?>
