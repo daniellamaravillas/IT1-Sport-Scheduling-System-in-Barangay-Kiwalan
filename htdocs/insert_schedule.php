@@ -1,7 +1,7 @@
 <?php
 session_start();
 include 'db.php';
-
+include 'navigation.php';
 $errorMsg = '';
 
 // New view mode: show schedule details for a given date with a close button
