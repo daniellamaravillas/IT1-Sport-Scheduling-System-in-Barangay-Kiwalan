@@ -1,7 +1,7 @@
 <?php
 session_start();
 include 'db.php';
-
+include 'navigation.php';
 $errorMsg = '';
 
 // New view mode: show schedule details for a given date with a close button
@@ -281,6 +281,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-close:hover {
             background-color: #999;
         }
+        .bg-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.3;
+            width: 90%; /* updated for relative sizing */
+            height: auto;
+            z-index: 0;
+        }
     </style>
 </head>
 <body>
@@ -289,51 +299,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if (!empty($errorMsg)) { ?>
         <div class="alert"><?php echo htmlspecialchars($errorMsg); ?></div>
     <?php } ?>
-    <form method="post" action="">
-        <div class="form-group">
-            <label for="client_name">Name of Client:</label>
-            <input type="text" name="client_name" id="client_name" class="form-control" required>
-        </div>
-        <!-- New fields for client contact information -->
-        <div class="form-group">
-            <label for="contact_number">Contact Number:</label>
-            <input type="text" name="contact_number" id="contact_number" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="location">Location:</label>
-            <input type="text" name="location" id="location" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="event_name">Event Name:</label>
-            <input type="text" name="event_name" id="event_name" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="start_date_time">Start Date/Time:</label>
-            <!-- Changed type to text for Flatpickr -->
-            <input type="text" name="start_date_time" id="start_date_time" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="end_date_time">End Date/Time:</label>
-            <!-- Changed type to text for Flatpickr -->
-            <input type="text" name="end_date_time" id="end_date_time" class="form-control" required>
-        </div>
-        <!-- Enhanced status radio buttons for admin -->
-        <?php if ($accountLevel === 'admin') { ?>
+    <div style="position: relative;">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkq7XF27sFIHs9Px8CvTXmZO2BCywhU38GTQ&s" alt="Logo" class="bg-logo">
+        <form method="post" action="" style="position: relative; z-index: 1;">
             <div class="form-group">
-                <label>Status:</label>
-                <div class="radio-group">
-                    <input type="radio" name="status" id="status_confirm" value="confirm" required>
-                    <label for="status_confirm">Confirm</label>
-                    <input type="radio" name="status" id="status_cancel" value="cancel" required>
-                    <label for="status_cancel">Cancel</label>
-                </div>
+                <label for="client_name">Name of Client:</label>
+                <input type="text" name="client_name" id="client_name" class="form-control" required>
             </div>
-        <?php } else { ?>
-            <input type="hidden" name="status" value="pending" />
-            <p>Status: Pending request (awaiting admin approval)</p>
-        <?php } ?>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+            <!-- New fields for client contact information -->
+            <div class="form-group">
+                <label for="contact_number">Contact Number:</label>
+                <input type="text" name="contact_number" id="contact_number" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Location:</label>
+                <input type="text" name="location" id="location" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="event_name">Event Name:</label>
+                <input type="text" name="event_name" id="event_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="start_date_time">Start Date/Time:</label>
+                <!-- Changed type to text for Flatpickr -->
+                <input type="text" name="start_date_time" id="start_date_time" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date_time">End Date/Time:</label>
+                <!-- Added styling with logo behind the input and label -->
+                <style>
+                    
+                    
+                </style>
+                <input type="text" name="end_date_time" id="end_date_time" class="form-control" required>
+            </div>
+            <!-- Enhanced status radio buttons for admin -->
+            <?php if ($accountLevel === 'admin') { ?>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <div class="radio-group">
+                        <input type="radio" name="status" id="status_confirm" value="confirm" required>
+                        <label for="status_confirm">Confirm</label>
+                        <input type="radio" name="status" id="status_cancel" value="cancel" required>
+                        <label for="status_cancel">Cancel</label>
+                    </div>
+                </div>
+            <?php } else { ?>
+                <input type="hidden" name="status" value="pending" />
+                <p>Status: Pending request (awaiting admin approval)</p>
+            <?php } ?>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
 </div>
 <!-- Flatpickr JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

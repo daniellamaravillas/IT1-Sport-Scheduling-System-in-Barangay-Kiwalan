@@ -7,6 +7,7 @@ $date = isset($_GET['date']) ? $_GET['date'] : '';
 if(!$date) {
     die("Invalid date.");
 }
+$displayDate = date("l, F j, Y", strtotime($date));
 
 // Updated query to join the Status and select its value
 $sql = "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, c.contact_number, c.location, us.updated_status
@@ -22,13 +23,13 @@ $result = $conn->query($sql);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Schedules for <?php echo $date; ?></title>
+    <title>Schedules for <?php echo $displayDate; ?></title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <!-- ...existing head content... -->
 </head>
 <body>
 <div class="container mt-4">
-    <h2 class="mb-4">Schedules for <?php echo $date; ?></h2>
+    <h2 class="mb-4">Schedules for <?php echo $displayDate; ?></h2>
     <!-- Updated back button with transparent background, no border and red '✖' -->
     <div class="d-flex justify-content-end mb-3">
         <a href="calendar.php" class="btn" style="background: transparent; border: none; color: red;">✖</a>
@@ -78,7 +79,7 @@ $result = $conn->query($sql);
                                 ?>
                             </td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-success" onclick="window.location.href='edit_schedule.php?id=<?php echo $row['ScheduleID']; ?>'">
+                                <button type="button" class="btn btn-sm btn-success" onclick="window.location.href='edit.php?id=<?php echo $row['ScheduleID']; ?>'">
                                     Edit
                                 </button>
                                 &nbsp;
