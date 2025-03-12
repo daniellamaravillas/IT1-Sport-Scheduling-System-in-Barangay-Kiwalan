@@ -82,6 +82,7 @@ CREATE TABLE `Schedule` (
   `ScheduleID` bigint(20) NOT NULL AUTO_INCREMENT,
   `start_date_time` datetime NOT NULL,
   `end_date_time` datetime NOT NULL,
+  `date_schedule` datetime NOT NULL,
   `EventID` bigint(20) NOT NULL,
   `StatusID` bigint(20) NOT NULL,
   PRIMARY KEY (`ScheduleID`),
@@ -98,7 +99,7 @@ CREATE TABLE `Schedule` (
 
 LOCK TABLES `Schedule` WRITE;
 /*!40000 ALTER TABLE `Schedule` DISABLE KEYS */;
-INSERT INTO `Schedule` VALUES (1,'2025-02-27 11:16:00','2025-02-27 23:17:00',1,3),(2,'2025-02-28 10:00:00','2025-02-28 11:00:00',2,3),(3,'2025-03-01 08:00:00','2025-03-01 21:30:00',3,3);
+INSERT INTO `Schedule` VALUES (1,'2025-02-27 11:16:00','2025-02-27 23:17:00','0000-00-00 00:00:00',1,3),(2,'2025-02-28 10:00:00','2025-02-28 11:00:00','0000-00-00 00:00:00',2,3),(3,'2025-03-01 08:00:00','2025-03-01 21:30:00','0000-00-00 00:00:00',3,3);
 /*!40000 ALTER TABLE `Schedule` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -193,4 +194,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-12  1:19:39
+-- Dump completed on 2025-03-12  1:28:54
