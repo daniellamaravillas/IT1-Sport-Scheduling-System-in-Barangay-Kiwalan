@@ -31,7 +31,7 @@ CREATE TABLE `Clients` (
   PRIMARY KEY (`ClientID`),
   KEY `users_Clients` (`ID`),
   CONSTRAINT `users_Clients` FOREIGN KEY (`ID`) REFERENCES `users` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,6 +40,7 @@ CREATE TABLE `Clients` (
 
 LOCK TABLES `Clients` WRITE;
 /*!40000 ALTER TABLE `Clients` DISABLE KEYS */;
+INSERT INTO `Clients` VALUES (1,'Jamie Moya',92546425,'Iligan City',1),(2,'jade',51686,'kiwalan',1),(3,'Daniella Maravillas',22312212,'Linamon',1);
 /*!40000 ALTER TABLE `Clients` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -52,12 +53,12 @@ DROP TABLE IF EXISTS `Events`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Events` (
   `EventID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `Events_name` text NOT NULL DEFAULT current_timestamp(),
+  `Events_name` text NOT NULL,
   `ClientID` bigint(20) NOT NULL,
   PRIMARY KEY (`EventID`),
   KEY `Clients_Events` (`ClientID`),
   CONSTRAINT `Clients_Events` FOREIGN KEY (`ClientID`) REFERENCES `Clients` (`ClientID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -66,6 +67,7 @@ CREATE TABLE `Events` (
 
 LOCK TABLES `Events` WRITE;
 /*!40000 ALTER TABLE `Events` DISABLE KEYS */;
+INSERT INTO `Events` VALUES (1,'Badminton',1),(2,'VOLLEYBALL',2),(3,'Chinesse Garter',3);
 /*!40000 ALTER TABLE `Events` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -87,7 +89,7 @@ CREATE TABLE `Schedule` (
   KEY `Updated_Status_Schedule` (`StatusID`),
   CONSTRAINT `Events_Schedule` FOREIGN KEY (`EventID`) REFERENCES `Events` (`EventID`),
   CONSTRAINT `Updated_Status_Schedule` FOREIGN KEY (`StatusID`) REFERENCES `Updated_Status` (`StatusID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -96,6 +98,7 @@ CREATE TABLE `Schedule` (
 
 LOCK TABLES `Schedule` WRITE;
 /*!40000 ALTER TABLE `Schedule` DISABLE KEYS */;
+INSERT INTO `Schedule` VALUES (1,'2025-02-27 11:16:00','2025-02-27 23:17:00',1,3),(2,'2025-02-28 10:00:00','2025-02-28 11:00:00',2,3),(3,'2025-03-01 08:00:00','2025-03-01 21:30:00',3,3);
 /*!40000 ALTER TABLE `Schedule` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -110,7 +113,7 @@ CREATE TABLE `Updated_Status` (
   `StatusID` bigint(20) NOT NULL AUTO_INCREMENT,
   `updated_status` text NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`StatusID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -119,10 +122,7 @@ CREATE TABLE `Updated_Status` (
 
 LOCK TABLES `Updated_Status` WRITE;
 /*!40000 ALTER TABLE `Updated_Status` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Updated_Status` ENABLE KEYS */;
-/*!40000 ALTER TABLE `Updated_Status` DISABLE KEYS */;
--- Insert initial status values
-INSERT INTO `Updated_Status` (updated_status) VALUES ('confirm'), ('cancel');
+INSERT INTO `Updated_Status` VALUES (3,'confirm'),(4,'Completed'),(5,'Completed'),(6,'Cancelled');
 /*!40000 ALTER TABLE `Updated_Status` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -171,7 +171,7 @@ CREATE TABLE `users` (
   `username` varchar(40) NOT NULL,
   `account_level` varchar(40) NOT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -180,7 +180,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'Aron@yahoo.com','$2y$10$TWWXV2nM.sjVHD3R98PJVOeJfl2pkkcioH.QupH05APDbpFyat6ty','Aron','admin');
+INSERT INTO `users` VALUES (1,'Aron@yahoo.com','$2y$10$TWWXV2nM.sjVHD3R98PJVOeJfl2pkkcioH.QupH05APDbpFyat6ty','Aron','admin'),(2,'dandan@gmail.com','$2y$10$ugnPayvk/4PTFKBra8GsTelsGqcwz6M8TordQ.c8wRPf0z2r3a6iK','dan','admin');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -193,4 +193,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-02-24  1:13:04
+-- Dump completed on 2025-03-12  1:19:39

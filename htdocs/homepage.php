@@ -99,6 +99,7 @@ $username = $user ? htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') : "
                 $stmtToday->close();
             }
             ?>
+            
         </div>
     </div>
 </div>

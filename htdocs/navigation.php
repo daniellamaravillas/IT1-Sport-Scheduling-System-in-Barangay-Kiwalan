@@ -120,56 +120,6 @@ if (isset($_SESSION['user_id'])) {
             margin-left: 250px; /* Adjust margin when sidebar is open */
             width: calc(100% - 250px); /* Adjust width when sidebar is open */
         }
-
-        .dropbtn {
-            width: 100%;
-            text-align: left;
-            background: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
-            border: none;
-            cursor: pointer;
-            font-size: 1.1rem;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 15px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            transition: background 0.3s ease;
-        }
-        .dropbtn:hover {
-            background: rgba(0, 0, 0, 0.5);
-        }
-        .dropdown {
-            position: relative;
-            width: 100%;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #1c1f26;
-            border-radius: 0 0 8px 8px;
-            overflow: hidden;
-            z-index: 999;
-        }
-        .dropdown-content a {
-            color: #fff;
-            padding: 12px 20px;
-            text-decoration: none;
-            display: block;
-            transition: background 0.3s ease;
-            font-size: 1rem;
-        }
-        .dropdown-content a:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        .dropdown:hover .dropdown-content {
-            display: flex;
-            flex-direction: column;
-        }
     </style>
     <!-- Add Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -193,27 +143,10 @@ if (isset($_SESSION['user_id'])) {
                <span class="badge badge-warning"><?php echo $dueTomorrowCount; ?> due tomorrow</span>
             <?php } ?>
         </a>
-        
-        <!-- Settings Dropdown -->
-        <div class="dropdown">
-            <button class="dropbtn">
-                <i class="fas fa-cog"></i>
-                <span class="nav-text">Settings</span>
-            </button>
-            <div class="dropdown-content">
-                <a href="history.php">
-                    <i class="fas fa-history"></i>
-                    History
-                </a>
-                <a href="register.php">
-                    <i class="fas fa-user-plus"></i>
-                    Register
-                </a>
-            </div>
-        </div>
-
-        <a href="schedule.php"><i class="fas fa-calendar-alt"></i>List Of  the Schedule</a>
-        <a href="logout.php" id="logoutTrigger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="schedule.php"><i class="fas fa-calendar-alt"></i> List Of the Schedule</a>
+        <a href="history.php"><i class="fas fa-history"></i> History</a>
+        <a href="register.php"><i class="fas fa-user-plus"></i> Register</a>
+        <a href="log-out.php" id="logoutTrigger"><i class="fas fa-sign-out-alt"></i> Log-out</a>
     </div>
 
     <div id="main" class="main-content"> <!-- Adjust main content margin -->

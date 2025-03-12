@@ -208,7 +208,7 @@ h2 {
 </head>
 <body>
 <div class="container mt-4">
-    <center><h2 class="mb-4">List of the Schedule</h2></center>
+    <center><h2 class="mb-4">List of Schedules</h2></center>
     <!-- Added search form -->
     <form method="get" action="schedule.php" class="mb-4">
         <div class="form-row">
@@ -227,13 +227,13 @@ h2 {
         <table class="table table-bordered table-striped">
             <thead>
                 <tr>
+
                     <th>Client Name</th>
                     <th>Contact Number</th>
                     <th>Location</th>
                     <th>Event</th>
                     <th>Start Date/Time</th>
                     <th>End Date/Time</th>
-                    <!-- Added column for actions -->
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -244,17 +244,17 @@ h2 {
                           $endFormatted   = date("l, F j, Y g:i A", strtotime($row['end_date_time']));
                     ?>
                         <tr>
+
                             <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
                             <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
                             <td><?php echo htmlspecialchars($row['location']); ?></td>
                             <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
                             <td><?php echo $startFormatted; ?></td>
                             <td><?php echo $endFormatted; ?></td>
-                            <!-- Added action buttons with proper spacing -->
                             <td>
                                 <div class="d-flex justify-content-center align-items-center">
                                     <a href="edit.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" class="btn btn-sm btn-primary mr-2">
-                                        <i class="fas fa-edit" style="color: green;"></i> <!-- updated: edit icon colored green -->
+                                        <i class="fas fa-edit" style="color: green;"></i>
                                     </a>
                                     <a href="schedule_delete.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" onclick="return confirm('Are you sure you want to delete this schedule?');" class="btn btn-sm btn-danger">
                                         <i class="fas fa-trash"></i>
@@ -265,7 +265,7 @@ h2 {
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="text-center">No result can be found</td>
+                        <td colspan="8" class="text-center">No result can be found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
