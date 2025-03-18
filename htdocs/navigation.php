@@ -1,10 +1,56 @@
 <?php
 
+// Debugging function - uncomment when needed
+// function debug_session() {
+//     echo "<div style='position:fixed; bottom:0; right:0; background:rgba(0,0,0,0.7); color:white; padding:10px; z-index:9999; font-size:12px;'>";
+//     echo "<strong>SESSION DEBUG:</strong><br>";
+//     foreach ($_SESSION as $key => $value) {
+//         echo htmlspecialchars($key) . ": " . htmlspecialchars(print_r($value, true)) . "<br>";
+//     }
+//     echo "</div>";
+// }
+// Uncomment to see session variables: 
+// debug_session();
+
 include 'db.php';
 
 $pendingCount = 0;
-$dueTomorrowCount = 0; // Add variable to count schedules due tomorrow
-$username = '';
+$dueTomorrowCount = 0;
+$username = 'Guest'; // Default username if not logged in
+
+// Check if user is logged in before trying to access session variables
+if (isset($_SESSION['ID'])) {
+    // Get username from database using ID
+    $stmt = $conn->prepare("SELECT username FROM users WHERE ID = ?");
+    $stmt->bind_param("i", $_SESSION['ID']);
+    $stmt->execute();
+    $stmt->bind_result($username);
+    $stmt->fetch();
+    $stmt->close();
+} elseif (isset($_SESSION['email'])) {
+    // If we have email but no ID, try to get username from email
+    $stmt = $conn->prepare("SELECT username, ID FROM users WHERE email = ?");
+    $stmt->bind_param("s", $_SESSION['email']);
+    $stmt->execute();
+    $stmt->bind_result($username, $userId);
+    $stmt->fetch();
+    $stmt->close();
+    
+    // Store the ID in session if found
+    if ($userId) {
+        $_SESSION['ID'] = $userId;
+    }
+    
+    // If still no username but we have account level, use that with email
+    if (!$username && isset($_SESSION['account_level'])) {
+        $username = ucfirst($_SESSION['account_level']) . ' (' . $_SESSION['email'] . ')';
+    } elseif (!$username) {
+        // Just use email if we have no other identifier
+        $username = $_SESSION['email'];
+    }
+}
+
+// Additional code for notifications
 if (isset($_SESSION['account_level']) && $_SESSION['account_level'] === 'admin') {
     $stmt = $conn->prepare("SELECT COUNT(*) FROM Schedule s JOIN Updated_Status us ON s.StatusID = us.StatusID WHERE us.updated_status = 'pending'");
     $stmt->execute();
@@ -16,15 +62,6 @@ if (isset($_SESSION['account_level']) && $_SESSION['account_level'] === 'admin')
     $stmt = $conn->prepare("SELECT COUNT(*) FROM Schedule WHERE DATE(start_date_time) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)");
     $stmt->execute();
     $stmt->bind_result($dueTomorrowCount);
-    $stmt->fetch();
-    $stmt->close();
-}
-
-if (isset($_SESSION['user_id'])) {
-    $stmt = $conn->prepare("SELECT username FROM Users WHERE user_id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $stmt->bind_result($username);
     $stmt->fetch();
     $stmt->close();
 }
@@ -236,8 +273,10 @@ $tomorrowCount = $tomorrowRow['count'];
             <a href="register.php"><i class="fas fa-user-plus"></i> Register</a>
         </div>
         <div class="profile">
-            <i class="fas fa-user"></i>
-            <span><?php echo htmlspecialchars($username); ?></span>
+            <i class="fas fa-user-circle fa-lg"></i>
+            <span id="username-display" style="margin-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
+                <?php echo htmlspecialchars($username); ?>
+            </span>
         </div>
         <div class="logout">
             <a href="javascript:void(0);" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i>Log Out</a>
