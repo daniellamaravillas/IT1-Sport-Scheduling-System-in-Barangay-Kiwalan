@@ -96,7 +96,7 @@ $tomorrowCount = $tomorrowRow['count'];
         }
 
         .sidebar a:hover {
-            background-color: #D65A14; /* Slightly Darker Orange for Interaction Feedback */
+            background-color:rgb(47, 121, 231); /* Slightly Darker Orange for Interaction Feedback */
             padding-left: 30px;
         }
 
@@ -222,7 +222,7 @@ $tomorrowCount = $tomorrowRow['count'];
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgJbMfeLLbE_Wh3cK3RK8s0a-P9hvTwYfHpw&s" alt="Logo" class="logo">
         </div>
         <div class="nav-items">
-            <a href="calendar.php"><i class="fas fa-home"></i> Home</a>
+            <a href="homepage.php"><i class="fas fa-home"></i> Home</a>
             <a href="notification.php"><i class="fas fa-bell"></i> Notification
                 <?php if($pendingCount > 0){ ?>
                    <span class="badge badge-danger"><?php echo $pendingCount; ?></span>
@@ -240,7 +240,7 @@ $tomorrowCount = $tomorrowRow['count'];
             <span><?php echo htmlspecialchars($username); ?></span>
         </div>
         <div class="logout">
-            <a href="#" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i>Log Out</a>
+            <a href="javascript:void(0);" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i>Log Out</a>
         </div>
     </div>
 
@@ -282,6 +282,7 @@ $tomorrowCount = $tomorrowRow['count'];
         });
 
         function showLogoutConfirmation() {
+            event.preventDefault(); // Prevent the default link behavior
             document.getElementById("logoutConfirmation").style.display = "block";
         }
 

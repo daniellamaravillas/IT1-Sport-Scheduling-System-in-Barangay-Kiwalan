@@ -31,7 +31,7 @@ CREATE TABLE `Clients` (
   PRIMARY KEY (`ClientID`),
   KEY `users_Clients` (`ID`),
   CONSTRAINT `users_Clients` FOREIGN KEY (`ID`) REFERENCES `users` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,7 +40,7 @@ CREATE TABLE `Clients` (
 
 LOCK TABLES `Clients` WRITE;
 /*!40000 ALTER TABLE `Clients` DISABLE KEYS */;
-INSERT INTO `Clients` VALUES (1,'Jamie Moya',92546425,'Iligan City',1),(2,'jade',51686,'kiwalan',1),(3,'Daniella Maravillas',22312212,'Linamon',1);
+INSERT INTO `Clients` VALUES (1,'Jamie Moya',92546425,'Iligan City',1),(2,'jade',51686,'kiwalan',1),(3,'Daniella Maravillas',22312212,'Linamon',1),(8,'Clarky',975500554,'Kiwalan',1);
 /*!40000 ALTER TABLE `Clients` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -58,7 +58,7 @@ CREATE TABLE `Events` (
   PRIMARY KEY (`EventID`),
   KEY `Clients_Events` (`ClientID`),
   CONSTRAINT `Clients_Events` FOREIGN KEY (`ClientID`) REFERENCES `Clients` (`ClientID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -67,7 +67,7 @@ CREATE TABLE `Events` (
 
 LOCK TABLES `Events` WRITE;
 /*!40000 ALTER TABLE `Events` DISABLE KEYS */;
-INSERT INTO `Events` VALUES (1,'Badminton',1),(2,'VOLLEYBALL',2),(3,'Chinesse Garter',3);
+INSERT INTO `Events` VALUES (1,'Badminton',1),(2,'VOLLEYBALL',2),(3,'Chinesse Garter',3),(8,'Basketball',8),(9,'Basketball',8);
 /*!40000 ALTER TABLE `Events` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -90,7 +90,7 @@ CREATE TABLE `Schedule` (
   KEY `Updated_Status_Schedule` (`StatusID`),
   CONSTRAINT `Events_Schedule` FOREIGN KEY (`EventID`) REFERENCES `Events` (`EventID`),
   CONSTRAINT `Updated_Status_Schedule` FOREIGN KEY (`StatusID`) REFERENCES `Updated_Status` (`StatusID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,7 +99,7 @@ CREATE TABLE `Schedule` (
 
 LOCK TABLES `Schedule` WRITE;
 /*!40000 ALTER TABLE `Schedule` DISABLE KEYS */;
-INSERT INTO `Schedule` VALUES (1,'2025-02-27 11:16:00','2025-02-27 23:17:00','0000-00-00 00:00:00',1,3),(2,'2025-02-28 10:00:00','2025-02-28 11:00:00','0000-00-00 00:00:00',2,3),(3,'2025-03-01 08:00:00','2025-03-01 21:30:00','0000-00-00 00:00:00',3,3);
+INSERT INTO `Schedule` VALUES (1,'2025-02-27 11:16:00','2025-02-27 23:17:00','0000-00-00 00:00:00',1,3),(2,'2025-02-28 10:00:00','2025-02-28 11:00:00','0000-00-00 00:00:00',2,3),(3,'2025-03-01 08:00:00','2025-03-01 21:30:00','0000-00-00 00:00:00',3,3),(4,'2025-03-17 20:37:00','2025-03-17 21:37:00','2025-03-17 12:37:00',8,3),(5,'2025-03-17 20:00:00','2025-03-17 21:00:00','2025-03-17 12:38:00',9,3);
 /*!40000 ALTER TABLE `Schedule` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -194,4 +194,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-12  1:28:54
+-- Dump completed on 2025-03-18  4:25:55

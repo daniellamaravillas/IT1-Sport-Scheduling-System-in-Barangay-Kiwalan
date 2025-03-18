@@ -2,71 +2,188 @@
 session_start();
 include 'db.php';
 include 'navigation.php';
+// ...existing error reporting if needed...
 
-// Section 1: Clients Booked Schedules with updated status
-// Assumed schema details:
-// - Clients: ClientID, clients_name, contact_number, location, ...
-// - Events: EventID, Events_name, ClientID, ...
-// - Schedule: ScheduleID, start_date_time, end_date_time, EventID, StatusID, ...
-// - Updated_Status: StatusID, updated_status, ...
-$querySchedules = "SELECT c.ClientID, c.clients_name, c.contact_number, c.location, 
-                          s.ScheduleID, s.start_date_time, s.end_date_time, 
-                          e.Events_name, us.updated_status 
-                   FROM Clients c
-                   JOIN Events e ON c.ClientID = e.ClientID
-                   JOIN Schedule s ON e.EventID = s.EventID
-                   JOIN Updated_Status us ON s.StatusID = us.StatusID
-                   ORDER BY s.start_date_time DESC";
-$resultSchedules = $conn->query($querySchedules);
+// New search parameters
+$searchName = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
+$searchDate = isset($_GET['searchDate']) ? $conn->real_escape_string($_GET['searchDate']) : '';
 
-// Removed history details query
+// Updated query to fetch only the required columns
+$query = "SELECT c.clients_name, c.location, c.contact_number, 
+                 s.start_date_time, s.end_date_time, 
+                 DATE(s.start_date_time) AS date_schedule, 
+                 us.updated_status
+          FROM Schedule s
+          JOIN Events e ON s.EventID = e.EventID
+          JOIN Clients c ON e.ClientID = c.ClientID
+          JOIN Updated_Status us ON s.StatusID = us.StatusID";
+
+// Append search conditions if provided
+$whereClauses = [];
+if ($searchName !== '') {
+    $whereClauses[] = "c.clients_name LIKE '%$searchName%'";
+}
+if ($searchDate !== '') {
+    $whereClauses[] = "DATE(s.start_date_time) = '$searchDate'";
+}
+if (count($whereClauses) > 0) {
+    $query .= " WHERE " . implode(" AND ", $whereClauses);
+}
+$query .= " ORDER BY s.start_date_time DESC";
+$result = $conn->query($query);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Client Full History</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <!-- ...existing head code... -->
+    <title>History</title>
+    <!-- ...existing head content... -->
+    <style>
+        /* ...existing CSS... */
+        body {
+            background-color: #101010;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            position: relative;
+            max-width: 900px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .back-arrow {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            font-size: 18px;
+            text-decoration: none;
+            color: rgb(27, 107, 212);
+        }
+        .back-arrow:hover {
+            color: rgb(0, 90, 180);
+        }
+        /* Search Form */
+            .form-control {
+                background: #1c1f26;
+                color: #ffffff;
+                border: 1px solid rgb(0, 110, 255);
+                border-radius: 6px;
+                padding: 8px 12px;
+            }
+
+            .form-control:focus {
+                border-color:rgba(245, 240, 232, 0.03);
+                outline: none;
+                box-shadow: 0 0 5px rgba(58, 151, 238, 0.8);
+            }
+
+        form.mb-4 {
+            margin-bottom: 20px;
+        }
+        form.mb-4 input.form-control {
+            display: inline-block;
+            width: 350px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        form.mb-4 button.btn {
+            vertical-align: middle;
+            padding: 12px 20px;
+            font-size: 16px;   
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color:rgb(77, 146, 192);
+            color: white;
+            text-transform: uppercase;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        .btn-primary {
+            background-color:rgb(27, 107, 212); /* sky blue */
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+        }
+        .btn-secondary {
+            background-color: grey; /* changed background color to grey */
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;    
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h2>Clients Previous Schedules</h2>
+        <h2>History</h2>
+        <!-- Updated search form with Clear All button reintroduced -->
+        <form method="get" action="history.php" class="mb-4">
+            <input type="text" name="search" class="form-control" placeholder="Search Client Name..." value="<?php echo htmlspecialchars($searchName); ?>">
+            <input type="date" name="searchDate" class="form-control" value="<?php echo htmlspecialchars($searchDate); ?>">
+            <button type="submit" class="btn btn-primary"><strong>Search</strong></button>
+            <a href="history.php" class="btn btn-secondary">Clear All</a>
+        </form>
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Client ID</th>
                     <th>Client Name</th>
-                    <th>Contact Number</th>
                     <th>Location</th>
-                    <th>Schedule ID</th>
-                    <th>Event</th>
+                    <th>Contact Number</th>
                     <th>Start Date/Time</th>
                     <th>End Date/Time</th>
-                    <th>Status</th>
+                    <th>Date Schedule</th>
+                    <th>Updated Status</th>
                 </tr>
             </thead>
             <tbody>
-                <?php while($row = $resultSchedules->fetch_assoc()){ ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($row['ClientID']); ?></td>
-                    <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
-                    <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
-                    <td><?php echo htmlspecialchars($row['location']); ?></td>
-                    <td><?php echo htmlspecialchars($row['ScheduleID']); ?></td>
-                    <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
-                    <td><?php echo date("F j, Y, g:i a", strtotime($row['start_date_time'])); ?></td>
-                    <td><?php echo date("F j, Y, g:i a", strtotime($row['end_date_time'])); ?></td>
-                    <td><?php echo (strtolower($row['updated_status']) == 'cancelled' ? 'Cancelled' : 'Completed'); ?></td>
-                </tr>
-                <?php } ?>
+                <?php if($result && $result->num_rows > 0): ?>
+                    <?php while($row = $result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['location']); ?></td>
+                            <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
+                            <td><?php echo date("F j, Y, g:i a", strtotime($row['start_date_time'])); ?></td>
+                            <td><?php echo date("F j, Y, g:i a", strtotime($row['end_date_time'])); ?></td>
+                            <td><?php echo htmlspecialchars($row['date_schedule']); ?></td>
+                            <td>
+                                <?php 
+                                $status = strtolower($row['updated_status']);
+                                if ($status === 'completed') {
+                                    echo '<span style="background-color: green; color: white; padding: 5px 10px; border-radius: 5px;">Completed</span>';
+                                } elseif ($status === 'cancel') {
+                                    echo '<span style="background-color: red; color: white; padding: 5px 10px; border-radius: 5px;">Cancel</span>';
+                                } else {
+                                    echo htmlspecialchars($row['updated_status']);
+                                }
+                                ?>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7">No schedule history found.</td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
-
-        <!-- Removed History Details table -->
-
-        <a href="calendar.php" class="btn btn-secondary">Back to Calendar</a>
     </div>
-    <!-- ...existing footer code... -->
 </body>
 </html>

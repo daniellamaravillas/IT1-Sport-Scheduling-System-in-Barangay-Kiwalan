@@ -2,28 +2,38 @@
 include 'db.php';
 session_start();
 
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = htmlspecialchars($_POST['email']);
     $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    if ($stmt = $conn->prepare("SELECT * FROM users WHERE email = ?")) {
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
 
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['email'] = $user['email'];
-        $_SESSION['account_level'] = $user['account_level'];
-        header("Location: homepage.php"); // Redirect to homepage
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['account_level'] = $user['account_level'];
+            header("Location: homepage.php"); // Redirect to homepage
+            exit();
+        } else {
+            $error = "Invalid email or password.";
+        }
+
+        $stmt->close();
     } else {
-        $error = "Invalid email or password.";
+        $error = "Database query failed.";
     }
+
+    $conn->close();
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
@@ -61,8 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         @keyframes moveStars {
-            from { background-position: 0 0; }
-            to { background-position: -10000px 5000px; }
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: -10000px 5000px;
+            }
         }
 
         /* Semi-transparent Login Card */
@@ -75,20 +90,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
             animation: fadeIn 0.8s ease-in-out;
         }
+
         /* Logo styling */
         .login-box .logo {
             margin-bottom: 20px;
         }
+
         .login-box .logo img {
             width: 80px;
             height: auto;
-            border-radius: 12px; // changed from 50% (circle) to 12px for rounded square effect
+            border-radius: 12px; /* changed from 50% (circle) to 12px for rounded square effect */
             border: 2px solid rgba(255, 255, 255, 0.6);
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Headings */
@@ -124,7 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .btn {
             width: 100%;
             padding: 12px;
-            background:rgb(28, 97, 201); /* Red-Orange Button */
+            background: rgb(28, 97, 201);
+            /* Red-Orange Button */
             border: none;
             border-radius: 8px;
             color: white;
@@ -136,10 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .btn:hover {
-            background:rgb(31, 50, 138);
+            background: rgb(31, 50, 138);
         }
     </style>
 </head>
+
 <body>
     <div class="login-box">
         <div class="logo">
@@ -158,6 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
             <button type="submit" class="btn">Login</button>
         </form>
-    </div>
 </body>
+
 </html>
