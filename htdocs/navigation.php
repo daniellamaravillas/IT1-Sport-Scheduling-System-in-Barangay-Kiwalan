@@ -100,18 +100,18 @@ $tomorrowCount = $tomorrowRow['count'];
 
         .sidebar {
             width: 250px;
-            background: #1E293B; /* Charcoal Gray – Subtle & Modern */
+            background: #000000; /* Changed to black */
             color: #CDD6F4; /* Soft White-Blue – Comfort on Eyes */
-            transition: width 0.3s, transform 0.3s, opacity 0.3s;
+            transition: none;
             position: fixed;
             top: 0;
             left: 0;
             height: 100%;
             overflow: hidden;
-            transform: translateX(-100%);
+            transform: translateX(0);
+            opacity: 1;
             z-index: 1000;
             box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-            opacity: 0;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -141,14 +141,15 @@ $tomorrowCount = $tomorrowRow['count'];
             flex: 1;
             padding: 20px;
             margin-left: 0;
-            transition: margin-left 0.3s, filter 0.3s;
+            transition: none;
             color: #EAEAEA; /* Light Gray – Readable on Dark */
+            margin-top: 50px; /* added to account for the top bar */
         }
 
         .toggle-btn {
-            display: none;
+            display: block; // changed from display: none to display: block
             padding: 10px;
-            background-color: rgba(51, 51, 51, 0.5); /* Use rgba for transparency */
+            background-color: zgba(51, 51, 51, 0.5); /* Use rgba for transparency */
             color: #CDD6F4; /* Soft White-Blue – Comfort on Eyes */
             border: none;
             cursor: pointer;
@@ -237,30 +238,96 @@ $tomorrowCount = $tomorrowRow['count'];
 
         @media (max-width: 768px) {
             .sidebar {
-                width: 0;
-                transform: translateX(-100%);
-                opacity: 0;
+                transform: translateX(0);
+                opacity: 1;
             }
 
             .main-content {
-                margin-left: 0;
+                margin-left: 250px;
             }
 
             .toggle-btn {
                 display: block;
             }
         }
+
+        /* Enhanced top bar and dropdown styles */
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 250px;
+            right: 0;
+            height: 50px;
+            background-color: #000000; /* Changed to black */
+            color: #CDD6F4;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1001;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .menu-btn {
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .username-container {
+            margin-left: auto;
+            position: relative;
+        }
+        .username {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .username:hover {
+            background-color: #334155;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: #000000; /* Changed to black */
+            padding: 10px;
+            border: 1px solid #64748B;
+            border-radius: 5px;
+            z-index: 1002;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            margin-top: 10px; /* Added margin to ensure full text visibility */
+        }
+        .dropdown-menu a {
+            display: block;
+            color: #CDD6F4;
+            padding: 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+            white-space: nowrap; /* Ensure text does not wrap */
+        }
+        .dropdown-menu a:hover {
+            background-color: #334155;
+        }
     </style>
 </head>
 <body>
-    <button class="toggle-btn" onclick="toggleSidebar()">☰ Menu</button>
+    <!-- New top bar -->
+    <div class="topbar">
+        <div class="username-container">
+            <span class="username" onclick="toggleDropdown()"><?php echo htmlspecialchars($username); ?></span>
+            <div class="dropdown-menu" id="usernameDropdown">
+                <a href="register.php">Register</a>
+                <a href="javascript:void(0);" onclick="showLogoutConfirmation()">Log Out</a>
+            </div>
+        </div>
+    </div>
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgJbMfeLLbE_Wh3cK3RK8s0a-P9hvTwYfHpw&s" alt="Logo" class="logo">
         </div>
         <div class="nav-items">
             <a href="homepage.php"><i class="fas fa-home"></i> Home</a>
-            <a href="notification.php"><i class="fas fa-bell"></i> Notification
+            <a href="notification.php"><i class="fas fa-bell"></i>Notification
                 <?php if($pendingCount > 0){ ?>
                    <span class="badge badge-danger"><?php echo $pendingCount; ?></span>
                 <?php } ?>
@@ -268,9 +335,9 @@ $tomorrowCount = $tomorrowRow['count'];
                    <span class="badge badge-warning"><?php echo $dueTomorrowCount; ?> due tomorrow</span>
                 <?php } ?>
             </a>
-            <a href="schedule.php"><i class="fas fa-calendar-alt"></i> List Of the Schedule</a>
-            <a href="history.php"><i class="fas fa-history"></i> History</a>
-            <a href="register.php"><i class="fas fa-user-plus"></i> Register</a>
+            <a href="schedule.php"><i class="fas fa-calendar-alt"></i>Schedules</a>
+            <a href="history.php"><i class="fas fa-history"></i>History</a>
+            <a href="register.php"><i class="fas fa-user-plus"></i>Register</a>
         </div>
         <div class="profile">
             <i class="fas fa-user-circle fa-lg"></i>
@@ -290,47 +357,36 @@ $tomorrowCount = $tomorrowRow['count'];
     </div>
 
     <script>
+        // Modified toggleSidebar to only toggle sidebar displayc
         function toggleSidebar() {
             var sidebar = document.getElementById("sidebar");
-            var mainContent = document.querySelector(".main-content");
             if (sidebar.style.transform === "translateX(0px)") {
                 sidebar.style.transform = "translateX(-100%)";
                 sidebar.style.opacity = "0";
-                mainContent.style.marginLeft = "0";
             } else {
                 sidebar.style.transform = "translateX(0px)";
                 sidebar.style.opacity = "1";
-                mainContent.style.marginLeft = "250px";
             }
         }
-
-        document.addEventListener('mousemove', function(e) {
-            var sidebar = document.getElementById("sidebar");
-            var mainContent = document.querySelector(".main-content");
-            if (e.clientX < 50) {
-                sidebar.style.transform = "translateX(0px)";
-                sidebar.style.opacity = "1";
-                mainContent.style.marginLeft = "250px";
-                mainContent.style.filter = "blur(5px)";
-            } else if (e.clientX > 250) {
-                sidebar.style.transform = "translateX(-100%)";
-                sidebar.style.opacity = "0";
-                mainContent.style.marginLeft = "0";
-                mainContent.style.filter = "none";
-            }
-        });
-
+        // Removed mouse pointer listener code (previously present) in favor of using the menu button only.
         function showLogoutConfirmation() {
             event.preventDefault(); // Prevent the default link behavior
             document.getElementById("logoutConfirmation").style.display = "block";
         }
-
         function hideLogoutConfirmation() {
             document.getElementById("logoutConfirmation").style.display = "none";
         }
-
         function confirmLogout() {
             window.location.href = "log-out.php";
+        }
+        // New function to toggle the username dropdown
+        function toggleDropdown() {
+            var dropdown = document.getElementById("usernameDropdown");
+            if (dropdown.style.display === "block") {
+                dropdown.style.display = "none";
+            } else {
+                dropdown.style.display = "block";
+            }
         }
     </script>
 </body>

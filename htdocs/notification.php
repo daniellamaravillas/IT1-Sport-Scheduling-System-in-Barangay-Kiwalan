@@ -22,14 +22,32 @@ $count = $result->num_rows;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap CSS (optional) -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="yawa.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0;
+            text-align: center; /* Center the text */
+            padding-top: 50px; /* Ensure content is visible despite the top bar */
+            padding-left: 250px; /* Ensure content is visible despite the sidebar */
+        }
+        .container {
+            margin-top: 20px; /* Adjusted margin-top */
+        }
+        @media (max-width: 992px) {
+            body {
+                padding-left: 0; /* Remove left padding on smaller screens */
+            }
+            .container {
+                margin-top: 70px; /* Adjusted margin-top for smaller screens */
+            }
+        }
     </style>
 </head>
 <body>
     <?php include 'navigation.php'; ?>
-    <div class="container" style="margin-top: 120px;">
+    <div class="container">
         <?php if ($count > 0): ?>
             <div class="alert alert-danger" role="alert">
                 You have upcoming event reminders for tomorrow (<?php echo $tomorrowFormatted; ?>):

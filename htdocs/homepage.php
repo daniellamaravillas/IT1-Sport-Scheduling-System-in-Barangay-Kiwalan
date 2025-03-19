@@ -74,6 +74,9 @@ $username = $user ? htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') : "
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            text-align: center; /* Center the text */
+            padding-top: 50px; /* Ensure content is visible despite the top bar */
+            padding-left: 250px; /* Ensure content is visible despite the sidebar */
         }
         
         .container {
@@ -83,15 +86,20 @@ $username = $user ? htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') : "
             width: 95%;
             background: #ffffff;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(245, 245, 245, 0.08);
             border-radius: 10px;
             margin: 20px auto;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-top: 20px; /* Adjusted margin-top */
         }
         
         @media (max-width: 992px) {
+            body {
+                padding-left: 0; /* Remove left padding on smaller screens */
+            }
             .container {
                 flex-direction: column;
+                margin-top: 70px; /* Adjusted margin-top for smaller screens */
             }
         }
         
@@ -550,16 +558,14 @@ $username = $user ? htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') : "
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        // New effect: when mouse enters the left hover area, shift container right and apply blur.
+        // New effect: when mouse enters the left hover area, shift container right without blurring.
         const leftHover = document.getElementById('leftHover');
         const container = document.querySelector('.container');
         leftHover.addEventListener('mouseenter', function() {
             container.style.transform = "translateX(20px)";
-            container.style.filter = "blur(5px)";
         });
         leftHover.addEventListener('mouseleave', function() {
             container.style.transform = "translateX(0)";
-            container.style.filter = "none";
         });
         
         // Handle schedule modal loading

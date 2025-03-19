@@ -5,6 +5,24 @@ include 'navigation.php';
 
 $currentDateStr = date('Y-m-d H:i:s');
 
+// Update status to "completed" for schedules where end time has passed
+$updateQuery = "UPDATE Schedule s
+                JOIN Updated_Status us ON s.StatusID = us.StatusID
+                SET s.StatusID = (SELECT StatusID FROM Updated_Status WHERE updated_status = 'completed')
+                WHERE s.end_date_time < '$currentDateStr' AND us.updated_status != 'completed'";
+$conn->query($updateQuery);
+
+// Insert completed schedules into history table
+$insertHistoryQuery = "INSERT INTO history (ClientID, ScheduleID, EventID)
+                       SELECT c.ClientID, s.ScheduleID, e.EventID
+                       FROM Schedule s
+                       JOIN Events e ON s.EventID = e.EventID
+                       JOIN Clients c ON e.ClientID = c.ClientID
+                       JOIN Updated_Status us ON s.StatusID = us.StatusID
+                       WHERE s.end_date_time < '$currentDateStr' AND us.updated_status = 'completed'
+                       ON DUPLICATE KEY UPDATE historyID = historyID";
+$conn->query($insertHistoryQuery);
+
 // Get search parameters
 $searchTerm = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 $searchDate = isset($_GET['searchDate']) ? $conn->real_escape_string($_GET['searchDate']) : '';
@@ -42,11 +60,13 @@ $result = $conn->query($query);
         /* Global Styling */
         body {
             background-color: #ffffff;
-            /* changed to white */
             color: #000000;
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
+            text-align: center; /* Center the text */
+            padding-top: 50px; /* Ensure content is visible despite the top bar */
+            padding-left: 250px; /* Ensure content is visible despite the sidebar */
         }
 
         /* Container */
@@ -54,9 +74,8 @@ $result = $conn->query($query);
             animation: fadeIn 1s ease-in-out;
             padding: 20px;
             margin: 0 auto;
-            /* center the container */
             text-align: center;
-            /* center text inside container */
+            margin-top: 20px; /* Adjusted margin-top */
         }
 
         /* Animation for a smooth fade-in effect */
@@ -86,7 +105,6 @@ $result = $conn->query($query);
         .table {
             width: 90%;
             margin: 20px auto;
-            /* center the table */
             background: #f9f9f9;
             border-radius: 8px;
             overflow: hidden;
@@ -101,7 +119,6 @@ $result = $conn->query($query);
 
         .table thead {
             background-color: #a9a9a9;
-            /* darker grey for header */
         }
 
         .table th {
@@ -185,6 +202,9 @@ $result = $conn->query($query);
 
         /* Responsive Styling */
         @media (max-width: 768px) {
+            body {
+                padding-left: 0; /* Remove left padding on smaller screens */
+            }
             .table {
                 font-size: 14px;
             }
@@ -261,7 +281,7 @@ $result = $conn->query($query);
         </div>
     </div>
     <!-- Optional: Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="bushit.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 </body>

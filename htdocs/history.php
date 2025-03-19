@@ -39,21 +39,22 @@ $result = $conn->query($query);
     <title>History</title>
     <!-- ...existing head content... -->
     <style>
-        /* ...existing CSS... */
         body {
-            background-color: #101010;
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            background-color: #ffffff;
+            color: #000000;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center; /* Center the text */
+            padding-top: 50px; /* Ensure content is visible despite the top bar */
+            padding-left: 250px; /* Ensure content is visible despite the sidebar */
         }
         .container {
-            position: relative;
-            max-width: 900px;
-            margin: auto;
-            background: #ffffff;
+            animation: fadeIn 1s ease-in-out;
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            margin: 0 auto;
             text-align: center;
+            margin-top: 20px; /* Adjusted margin-top */
         }
         .back-arrow {
             position: absolute;
@@ -67,19 +68,19 @@ $result = $conn->query($query);
             color: rgb(0, 90, 180);
         }
         /* Search Form */
-            .form-control {
-                background: #1c1f26;
-                color: #ffffff;
-                border: 1px solid rgb(0, 110, 255);
-                border-radius: 6px;
-                padding: 8px 12px;
-            }
+        .form-control {
+            background: #1c1f26;
+            color: #ffffff;
+            border: 1px solid rgb(0, 110, 255);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
 
-            .form-control:focus {
-                border-color:rgba(245, 240, 232, 0.03);
-                outline: none;
-                box-shadow: 0 0 5px rgba(58, 151, 238, 0.8);
-            }
+        .form-control:focus {
+            border-color:rgba(245, 240, 232, 0.03);
+            outline: none;
+            box-shadow: 0 0 5px rgba(58, 151, 238, 0.8);
+        }
 
         form.mb-4 {
             margin-bottom: 20px;
@@ -128,6 +129,14 @@ $result = $conn->query($query);
             color: white;
             padding: 12px 20px;
             font-size: 16px;    
+        }
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0; /* Remove left padding on smaller screens */
+            }
+            .container {
+                margin-top: 70px; /* Adjusted margin-top for smaller screens */
+            }
         }
     </style>
 </head>
