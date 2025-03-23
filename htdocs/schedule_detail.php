@@ -1,6 +1,7 @@
 <?php
 session_start();
-include 'db.php'; // ...existing DB connection code...
+include 'db.php';
+include 'navigation.php'; // ...existing DB connection code...
 // include 'navigation.php';
 
 $date = isset($_GET['date']) ? $_GET['date'] : '';
@@ -265,7 +266,7 @@ $result = $conn->query($sql);
                             <th>Event</th>
                             <th>Start Date/Time</th>
                             <th>End Date/Time</th>
-                            <th>Date Schedule</th>
+                            <th>Created At</th> <!-- Renamed Date Schedule to Created At -->
                             <th>Status</th>
                             <th>Actions</th> <!-- Added actions column -->
                         </tr>

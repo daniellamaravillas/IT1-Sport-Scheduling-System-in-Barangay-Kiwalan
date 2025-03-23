@@ -1,61 +1,66 @@
 <?php
 session_start();
 include 'db.php';
-include 'navigation.php';
-// ...existing error reporting if needed...
 
-// New search parameters
-$searchName = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
-$searchDate = isset($_GET['searchDate']) ? $conn->real_escape_string($_GET['searchDate']) : '';
+$currentDateStr = date('Y-m-d H:i:s');
 
-// Updated query to fetch only the required columns
-$query = "SELECT c.clients_name, c.location, c.contact_number, 
-                 s.start_date_time, s.end_date_time, 
-                 DATE(s.start_date_time) AS date_schedule, 
-                 us.updated_status
-          FROM Schedule s
-          JOIN Events e ON s.EventID = e.EventID
-          JOIN Clients c ON e.ClientID = c.ClientID
-          JOIN Updated_Status us ON s.StatusID = us.StatusID";
+// Initialize search variables
+$searchName = isset($_GET['search']) ? $_GET['search'] : '';
+$searchDate = isset($_GET['searchDate']) ? $_GET['searchDate'] : '';
 
-// Append search conditions if provided
-$whereClauses = [];
-if ($searchName !== '') {
-    $whereClauses[] = "c.clients_name LIKE '%$searchName%'";
+// Query to get completed schedules
+$historyQuery = "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, 
+    e.Events_name, c.clients_name, c.contact_number, c.location, 
+    u.username as created_by, us.updated_status
+    FROM Schedule s
+    JOIN Events e ON s.EventID = e.EventID
+    JOIN Clients c ON e.ClientID = c.ClientID
+    JOIN users u ON c.ID = u.ID
+    JOIN Updated_Status us ON s.StatusID = us.StatusID
+    WHERE (s.end_date_time < '$currentDateStr'
+    OR us.updated_status = 'completed')";
+
+// Add search conditions if parameters are provided
+if (!empty($searchName)) {
+    $searchName = $conn->real_escape_string($searchName);
+    $historyQuery .= " AND c.clients_name LIKE '%$searchName%'";
 }
-if ($searchDate !== '') {
-    $whereClauses[] = "DATE(s.start_date_time) = '$searchDate'";
+if (!empty($searchDate)) {
+    $searchDate = $conn->real_escape_string($searchDate);
+    $historyQuery .= " AND DATE(s.start_date_time) = '$searchDate'";
 }
-if (count($whereClauses) > 0) {
-    $query .= " WHERE " . implode(" AND ", $whereClauses);
-}
-$query .= " ORDER BY s.start_date_time DESC";
-$result = $conn->query($query);
+
+$historyQuery .= " ORDER BY s.end_date_time DESC";
+
+$result = $conn->query($historyQuery);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>History</title>
-    <!-- ...existing head content... -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Remove the padding-left from body since navigation handles spacing */
         body {
             background-color: #ffffff;
             color: #000000;
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            text-align: center; /* Center the text */
-            padding-top: 50px; /* Ensure content is visible despite the top bar */
-            padding-left: 250px; /* Ensure content is visible despite the sidebar */
+            text-align: center;
         }
+
+        /* Adjust container to work with navigation */
         .container {
             animation: fadeIn 1s ease-in-out;
             padding: 20px;
-            margin: 0 auto;
-            text-align: center;
-            margin-top: 20px; /* Adjusted margin-top */
+            margin-left: 250px; /* Match navigation width */
+            margin-top: 20px;
+            width: calc(100% - 250px); /* Adjust width accounting for nav */
         }
+
         .back-arrow {
             position: absolute;
             left: 20px;
@@ -131,16 +136,40 @@ $result = $conn->query($query);
             font-size: 16px;    
         }
         @media (max-width: 768px) {
-            body {
-                padding-left: 0; /* Remove left padding on smaller screens */
-            }
             .container {
-                margin-top: 70px; /* Adjusted margin-top for smaller screens */
+                margin-left: 0;
+                width: 100%;
             }
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: 500;
+            text-transform: capitalize;
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .status-completed {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-confirm {
+            background-color:rgb(62, 85, 212);
+            color: white;
+        }
+
+        .status-cancel {
+            background-color: #dc3545;
+            color: white;
         }
     </style>
 </head>
 <body>
+    <?php include 'navigation.php'; ?>
+    
     <div class="container mt-5">
         <h2>History</h2>
         <!-- Updated search form with Clear All button reintroduced -->
@@ -175,14 +204,33 @@ $result = $conn->query($query);
                             <td>
                                 <?php 
                                 $status = strtolower($row['updated_status']);
-                                if ($status === 'completed') {
-                                    echo '<span style="background-color: green; color: white; padding: 5px 10px; border-radius: 5px;">Completed</span>';
-                                } elseif ($status === 'cancel') {
-                                    echo '<span style="background-color: red; color: white; padding: 5px 10px; border-radius: 5px;">Cancel</span>';
+                                $statusClass = '';
+                                $currentTime = new DateTime();
+                                $endTime = new DateTime($row['end_date_time']);
+                                
+                                // Check if schedule is past end time and was confirmed
+                                if ($endTime < $currentTime && $status === 'confirm') {
+                                    $status = 'completed';
+                                    $statusClass = 'status-completed';
                                 } else {
-                                    echo htmlspecialchars($row['updated_status']);
+                                    switch ($status) {
+                                        case 'completed':
+                                            $statusClass = 'status-completed';
+                                            break;
+                                        case 'confirm':
+                                            $statusClass = 'status-confirm';
+                                            break;
+                                        case 'cancel':
+                                            $statusClass = 'status-cancel';
+                                            break;
+                                        default:
+                                            $statusClass = '';
+                                    }
                                 }
                                 ?>
+                                <span class="status-badge <?php echo $statusClass; ?>">
+                                    <?php echo ucfirst($status); ?>
+                                </span>
                             </td>
                         </tr>
                     <?php endwhile; ?>
@@ -194,5 +242,7 @@ $result = $conn->query($query);
             </tbody>
         </table>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,38 +1,92 @@
 <?php
 session_start();
 include 'db.php';
-include 'navigation.php';
 
 $currentDateStr = date('Y-m-d H:i:s');
 
-// Update status to "completed" for schedules where end time has passed
-$updateQuery = "UPDATE Schedule s
-                JOIN Updated_Status us ON s.StatusID = us.StatusID
-                SET s.StatusID = (SELECT StatusID FROM Updated_Status WHERE updated_status = 'completed')
-                WHERE s.end_date_time < '$currentDateStr' AND us.updated_status != 'completed'";
-$conn->query($updateQuery);
-
-// Insert completed schedules into history table
-$insertHistoryQuery = "INSERT INTO history (ClientID, ScheduleID, EventID)
-                       SELECT c.ClientID, s.ScheduleID, e.EventID
-                       FROM Schedule s
-                       JOIN Events e ON s.EventID = e.EventID
-                       JOIN Clients c ON e.ClientID = c.ClientID
-                       JOIN Updated_Status us ON s.StatusID = us.StatusID
-                       WHERE s.end_date_time < '$currentDateStr' AND us.updated_status = 'completed'
-                       ON DUPLICATE KEY UPDATE historyID = historyID";
-$conn->query($insertHistoryQuery);
+// Update statuses based on time conditions
+$updateStatusQuery = "UPDATE Schedule s 
+    JOIN Updated_Status us ON s.StatusID = us.StatusID 
+    SET s.StatusID = (
+        CASE 
+            WHEN s.end_date_time < '$currentDateStr' 
+                THEN (SELECT StatusID FROM Updated_Status WHERE updated_status = 'completed')
+            WHEN s.start_date_time <= '$currentDateStr' AND s.end_date_time > '$currentDateStr' 
+                THEN (SELECT StatusID FROM Updated_Status WHERE updated_status = 'ongoing')
+            WHEN s.start_date_time > '$currentDateStr' AND us.updated_status = 'confirm'
+                THEN (SELECT StatusID FROM Updated_Status WHERE updated_status = 'upcoming')
+            ELSE s.StatusID
+        END
+    )
+    WHERE us.updated_status IN ('confirm', 'ongoing', 'upcoming')";
+$conn->query($updateStatusQuery);
 
 // Get search parameters
 $searchTerm = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 $searchDate = isset($_GET['searchDate']) ? $conn->real_escape_string($_GET['searchDate']) : '';
 
-// Base query
-$query = "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, c.contact_number, c.location
+// Update the base query to include status and only show non-completed schedules
+$query = "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, 
+          COALESCE(s.date_schedule, s.start_date_time) as date_schedule, 
+          e.Events_name, c.clients_name, c.contact_number, c.location, 
+          u.username as created_by, us.updated_status
           FROM Schedule s
           JOIN Events e ON s.EventID = e.EventID
           JOIN Clients c ON e.ClientID = c.ClientID
-          WHERE s.start_date_time >= '$currentDateStr'";
+          JOIN users u ON c.ID = u.ID
+          JOIN Updated_Status us ON s.StatusID = us.StatusID
+          WHERE s.end_date_time >= '$currentDateStr'
+          OR us.updated_status != 'completed'";
+
+// New GET endpoint for "fetch_all"
+if (isset($_GET['fetch_all'])) {
+    $fetchQuery = "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name, c.contact_number, c.location
+                   FROM Schedule s
+                   JOIN Events e ON s.EventID = e.EventID
+                   JOIN Clients c ON e.ClientID = c.ClientID";
+    $fetchResult = $conn->query($fetchQuery);
+    echo '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Schedules</title>
+</head>
+<body>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Schedule ID</th>
+                <th>Start Date/Time</th>
+                <th>End Date/Time</th>
+                <th>Event Name</th>
+                <th>Client Name</th>
+                <th>Contact Number</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>';
+    if ($fetchResult && $fetchResult->num_rows > 0) {
+        while ($row = $fetchResult->fetch_assoc()) {
+            echo '<tr>
+                <td>' . htmlspecialchars($row['ScheduleID']) . '</td>
+                <td>' . htmlspecialchars($row['start_date_time']) . '</td>
+                <td>' . htmlspecialchars($row['end_date_time']) . '</td>
+                <td>' . htmlspecialchars($row['Events_name']) . '</td>
+                <td>' . htmlspecialchars($row['clients_name']) . '</td>
+                <td>' . htmlspecialchars($row['contact_number']) . '</td>
+                <td>' . htmlspecialchars($row['location']) . '</td>
+            </tr>';
+        }
+    } else {
+         echo '<tr><td colspan="7">No records found.</td></tr>';
+    }
+    echo '</tbody>
+    </table>
+</body>
+</html>';
+    exit;
+}
 
 // Build WHERE clause if either search term or date is provided
 $whereClauses = [];
@@ -55,217 +109,283 @@ $result = $conn->query($query);
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedule Table</title>
     <style>
-        /* Global Styling */
         body {
-            background-color: #ffffff;
-            color: #000000;
+            background-color: #fff;
+            color: #000;
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            text-align: center; /* Center the text */
-            padding-top: 50px; /* Ensure content is visible despite the top bar */
-            padding-left: 250px; /* Ensure content is visible despite the sidebar */
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Container */
         .container {
-            animation: fadeIn 1s ease-in-out;
+            flex: 1;
+            width: 100%;
             padding: 20px;
-            margin: 0 auto;
-            text-align: center;
-            margin-top: 20px; /* Adjusted margin-top */
+            margin: 0;
+            box-sizing: border-box;
         }
 
-        /* Animation for a smooth fade-in effect */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 0;
+            width: 100%;
         }
 
-        /* Headings */
-        h2 {
-            text-align: center;
-            color: #0a0a0a;
-            font-size: 28px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        /* Table Styling */
         .table {
-            width: 90%;
-            margin: 20px auto;
-            background: #f9f9f9;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .table:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        /* Adjust spacing for the navigation */
+        body > nav {
+            margin: 0;
+            padding: 0;
         }
 
-        .table thead {
-            background-color: #a9a9a9;
+        h2 {
+            margin: 20px 0;
+            padding: 0;
         }
 
         .table th {
+            background: #000;
+            color: #fff;
             padding: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
+            text-align: left;
         }
 
-        .table tbody tr:nth-child(even) {
-            background-color: #d3d3d3;
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
         }
 
-        .table tbody tr:hover {
-            background-color: #bfbfbf;
-            transition: 0.3s ease-in-out;
+        .table tr:nth-child(even) {
+            background-color: #f8f8f8;
         }
 
-        /* Buttons */
+        .form-control {
+            padding: 8px;
+            border: 1px solid #000;
+            margin-right: 10px;
+            width: 200px;
+        }
+
         .btn {
-            padding: 10px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            text-transform: uppercase;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .btn-primary {
-            background-color: rgb(145, 184, 235);
-            color: #101820;
+            background: #000;
+            color: #fff;
+            padding: 8px 16px;
             border: none;
+            cursor: pointer;
         }
 
-        .btn-primary:hover {
-            background-color: rgba(238, 238, 238, 0.42);
-            color: #ffffff;
+        .btn:hover {
+            background: #333;
         }
 
         .btn-danger {
-            background-color: rgb(221, 84, 97);
-            color: white;
-            border: none;
+            background: #ff0000;
         }
 
         .btn-danger:hover {
-            background-color: #c82333;
+            background: #cc0000;
         }
 
-        /* Search Form */
-        .form-control {
-            background: #1c1f26;
-            color: #ffffff;
-            border: 1px solid rgb(0, 110, 255);
-            border-radius: 6px;
-            padding: 8px 12px;
-        }
-
-        .form-control:focus {
-            border-color: rgba(245, 240, 232, 0.03);
-            outline: none;
-            box-shadow: 0 0 5px rgba(58, 151, 238, 0.8);
-        }
-
-        /* Adjust search form alignment for horizontal layout */
         form.mb-4 {
+            margin-bottom: 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
             gap: 10px;
-            flex-wrap: nowrap;
-            margin-bottom: 20px;
         }
 
-        form.mb-4 input.form-control {
-            width: 100%;
-            max-width: none;
-        }
-
-        form.mb-4 button.btn {
-            height: 50px;
-        }
-
-        /* Responsive Styling */
         @media (max-width: 768px) {
-            body {
-                padding-left: 0; /* Remove left padding on smaller screens */
-            }
             .table {
                 font-size: 14px;
             }
-
+            
             form.mb-4 {
                 flex-direction: column;
-                gap: 5px;
             }
 
-            form.mb-4 .form-control,
-            form.mb-4 .btn {
+            .form-control {
                 width: 100%;
+                margin-bottom: 10px;
             }
         }
+
+        /* Action Buttons Styling */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            min-width: 85px;
+            font-size: 0.875rem;
+        }
+
+        .btn-edit {
+            background-color: #fff;
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .btn-edit:hover {
+            background-color: #28a745;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .btn-delete {
+            background-color: #fff;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc3545;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .action-icon {
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: capitalize;
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .status-completed {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-confirm {
+            background-color: rgb(62, 85, 212);
+            color: white;
+        }
+
+        .status-cancelled {
+            background-color: #dc3545;
+            color: white;
+        }
     </style>
-    <!-- ...existing head content... -->
 </head>
 
-<body>
+<body><?php include 'navigation.php'; // Navigation now at the start of the body without leading space ?>
     <div class="container mt-4">
-        <center>
-            <h2 class="mb-4">List of Upcoming Schedules</h2>
-        </center>
+        <div style="text-align: left; margin-bottom: 20px;">
+            <h2 class="mb-4">List of Upcoming Schedules</h2> <br>
+        </div>
         <!-- Updated search form for horizontal alignment -->
         <form method="get" action="schedule.php" class="mb-4">
             <input type="text" name="search" class="form-control" placeholder="Search by name or location..." value="<?php echo htmlspecialchars($searchTerm); ?>">
             <input type="date" name="searchDate" class="form-control" value="<?php echo htmlspecialchars($searchDate); ?>">
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
+        <br>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>Total of Schedules Booked: <?php echo $result->num_rows; ?></span>
+            <a href="history.php" class="btn btn-secondary">History</a>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-striped">
                 <thead>
                     <tr>
+                        <th>No.</th>
                         <th>Client Name</th>
                         <th>Contact Number</th>
                         <th>Location</th>
                         <th>Event</th>
                         <th>Start Date/Time</th>
                         <th>End Date/Time</th>
+                        <th>Created By</th>
+                        <th>Date Created</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ($result->num_rows > 0): ?>
+                        <?php $i = 1; // initialize schedule counter ?>
                         <?php while ($row = $result->fetch_assoc()):
                             $startFormatted = date("l, F j, Y g:i A", strtotime($row['start_date_time']));
                             $endFormatted   = date("l, F j, Y g:i A", strtotime($row['end_date_time']));
+                            $createdAt      = date("l, F j, Y g:i A", strtotime($row['date_schedule']));
                         ?>
                             <tr>
+                                <td><?php echo $i++; ?></td>
                                 <td><?php echo htmlspecialchars($row['clients_name']); ?></td>
                                 <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
                                 <td><?php echo htmlspecialchars($row['location']); ?></td>
                                 <td><?php echo htmlspecialchars($row['Events_name']); ?></td>
                                 <td><?php echo $startFormatted; ?></td>
                                 <td><?php echo $endFormatted; ?></td>
+                                <td><?php echo htmlspecialchars($row['created_by']); ?></td>
+                                <td><?php echo $createdAt; ?></td>
                                 <td>
-                                    <div class="d-flex justify-content-center align-items-center">
-                                        <a href="edit_schedule.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" class="btn btn-sm btn-primary mr-2">
-                                            <i class="fas fa-edit" style="color: green;"></i>
+                                    <?php 
+                                    $status = strtolower($row['updated_status']);
+                                    $statusClass = '';
+                                    
+                                    switch ($status) {
+                                        case 'completed':
+                                            $statusClass = 'status-completed';
+                                            break;
+                                        case 'confirm':
+                                            $statusClass = 'status-confirm';
+                                            break;
+                                        case 'cancel':
+                                            $statusClass = 'status-cancelled';
+                                            break;
+                                        default:
+                                            $statusClass = '';
+                                    }
+                                    ?>
+                                    <span class="status-badge <?php echo $statusClass; ?>">
+                                        <?php echo ucfirst($row['updated_status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="edit_schedule.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" 
+                                           class="btn-action btn-edit" 
+                                           title="Edit Schedule">
+                                            <i class="fas fa-edit action-icon"></i>
+                                            <span>Edit</span>
                                         </a>
-                                        <a href="schedule_delete.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" onclick="return confirm('Are you sure you want to delete this schedule?');" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
+                                        <a href="schedule_delete.php?ScheduleID=<?php echo $row['ScheduleID']; ?>" 
+                                           class="btn-action btn-delete" 
+                                           title="Delete Schedule">
+                                            <i class="fas fa-trash action-icon"></i>
+                                            <span>Delete</span>
                                         </a>
                                     </div>
                                 </td>
@@ -273,7 +393,7 @@ $result = $conn->query($query);
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center">No result can be found</td>
+                            <td colspan="11" class="text-center">No result can be found</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

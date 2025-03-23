@@ -1,202 +1,197 @@
 <?php
 session_start();
+include 'db.php';
+
+// Check if user is logged in
 if (!isset($_SESSION['email'])) {
     header("Location: index.php");
     exit();
 }
 
-include 'db.php';
-include 'navigation.php';
-
-$scheduleID = isset($_GET['ScheduleID']) ? (int)$_GET['ScheduleID'] : 0;
-if ($scheduleID === 0) {
-    die("Invalid Schedule ID");
+// Check if ScheduleID is provided
+if (!isset($_GET['ScheduleID'])) {
+    header("Location: schedule.php");
+    exit();
 }
 
+$scheduleID = $conn->real_escape_string($_GET['ScheduleID']);
+
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startDateTime = $_POST['start_date_time'];
     $endDateTime = $_POST['end_date_time'];
-    $eventID = $_POST['eventID'];
-    $statusID = $_POST['statusID'] === 'cancel' ? null : $_POST['statusID'];
-    $clientName = $_POST['client_name'];
-    $contactNumber = $_POST['contact_number'];
-    $location = $_POST['location'];
+    $status = $_POST['status'];
 
-    // Validate inputs
-    if (empty($startDateTime) || empty($endDateTime) || empty($eventID) || empty($clientName) || empty($contactNumber) || empty($location)) {
-        $error = "All fields are required.";
-    } elseif (strtotime($startDateTime) >= strtotime($endDateTime)) {
-        $error = "Start time must be before end time.";
+    // Validate dates
+    if (strtotime($endDateTime) <= strtotime($startDateTime)) {
+        $error = "End date must be after start date";
     } else {
-        // Update schedule in the database
-        $stmt = $conn->prepare("UPDATE Schedule s
-                                JOIN Events e ON s.EventID = e.EventID
-                                JOIN Clients c ON e.ClientID = c.ClientID
-                                SET s.start_date_time = ?, s.end_date_time = ?, s.EventID = ?, s.StatusID = ?, c.clients_name = ?, c.contact_number = ?, c.location = ?
-                                WHERE s.ScheduleID = ?");
-        $stmt->bind_param("ssiiissi", $startDateTime, $endDateTime, $eventID, $statusID, $clientName, $contactNumber, $location, $scheduleID);
-        if ($stmt->execute()) {
-            $success = "Schedule updated successfully.";
-            // Fetch updated schedule details
-            $stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, s.EventID, s.StatusID, e.Events_name, us.updated_status, c.clients_name, c.contact_number, c.location
-                                    FROM Schedule s
-                                    JOIN Events e ON s.EventID = e.EventID
-                                    JOIN Updated_Status us ON s.StatusID = us.StatusID
-                                    JOIN Clients c ON e.ClientID = c.ClientID
-                                    WHERE s.ScheduleID = ?");
-            $stmt->bind_param("i", $scheduleID);
-            $stmt->execute();
-            $schedule = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-        } else {
-            $error = "Failed to update schedule.";
+        // First get the StatusID
+        $statusQuery = "SELECT StatusID FROM Updated_Status WHERE updated_status = ? LIMIT 1";
+        $statusStmt = $conn->prepare($statusQuery);
+        
+        if ($statusStmt) {
+            $statusStmt->bind_param("s", $status);
+            $statusStmt->execute();
+            $statusResult = $statusStmt->get_result();
+            
+            if ($statusRow = $statusResult->fetch_assoc()) {
+                $statusID = $statusRow['StatusID'];
+                
+                // Update schedule with the valid StatusID
+                $updateQuery = "UPDATE Schedule 
+                              SET start_date_time = ?,
+                                  end_date_time = ?,
+                                  StatusID = ?
+                              WHERE ScheduleID = ?";
+                
+                $stmt = $conn->prepare($updateQuery);
+                if ($stmt) {
+                    $stmt->bind_param("ssii", $startDateTime, $endDateTime, $statusID, $scheduleID);
+                    
+                    if ($stmt->execute()) {
+                        $_SESSION['success_msg'] = "Schedule successfully updated to " . ucfirst($status);
+                        header("Location: schedule.php");
+                        exit();
+                    } else {
+                        $error = "Error updating schedule";
+                    }
+                    $stmt->close();
+                }
+            } else {
+                $error = "Invalid status";
+            }
+            $statusStmt->close();
         }
-        $stmt->close();
     }
 }
 
-// Fetch schedule details
-$stmt = $conn->prepare("SELECT s.ScheduleID, s.start_date_time, s.end_date_time, s.EventID, s.StatusID, e.Events_name, us.updated_status, c.clients_name, c.contact_number, c.location
-                        FROM Schedule s
-                        JOIN Events e ON s.EventID = e.EventID
-                        JOIN Updated_Status us ON s.StatusID = us.StatusID
-                        JOIN Clients c ON e.ClientID = c.ClientID
-                        WHERE s.ScheduleID = ?");
+// Fetch current schedule data
+$query = "SELECT s.*, e.Events_name, c.clients_name, us.updated_status 
+          FROM Schedule s
+          JOIN Events e ON s.EventID = e.EventID
+          JOIN Clients c ON e.ClientID = c.ClientID
+          JOIN Updated_Status us ON s.StatusID = us.StatusID
+          WHERE s.ScheduleID = ?";
+
+$stmt = $conn->prepare($query);
 $stmt->bind_param("i", $scheduleID);
 $stmt->execute();
-$schedule = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$result = $stmt->get_result();
+$schedule = $result->fetch_assoc();
 
-// Fetch events and statuses for the form
-$events = $conn->query("SELECT EventID, Events_name FROM Events")->fetch_all(MYSQLI_ASSOC);
-$statuses = $conn->query("SELECT StatusID, updated_status FROM Updated_Status")->fetch_all(MYSQLI_ASSOC);
+if (!$schedule) {
+    header("Location: schedule.php");
+    exit();
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Schedule</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color:rgb(243, 237, 237);
-            color: #ffffff;
-            margin: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #333;
+        .edit-form {
+            max-width: 600px;
+            margin: 20px auto;
             padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             border-radius: 8px;
         }
-        .form-group {
-            margin-bottom: 15px;
+        .status-select {
+            font-weight: 500;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
+        .status-confirm {
+            color: rgb(62, 85, 212);
         }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #555;
-            border-radius: 4px;
-            background: #222;
-            color: #fff;
-        }
-        .form-group button {
-            padding: 10px 15px;
-            background-color: #28a745;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
-            cursor: pointer;
-        }
-        .form-group button:hover {
-            background-color: #218838;
-        }
-        .error {
+        .status-cancel {
             color: #dc3545;
-            margin-bottom: 15px;
         }
-        .success {
-            color: #28a745;
-            margin-bottom: 15px;
+        .status-select.status-confirm {
+            background-color: rgba(62, 85, 212, 0.1);
+            border-color: rgb(62, 85, 212);
+            color: rgb(62, 85, 212);
         }
-        .schedule-details {
-            margin-top: 20px;
-            background: #444;
-            padding: 15px;
-            border-radius: 8px;
+
+        .status-select.status-cancel {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-color: #dc3545;
+            color: #dc3545;
         }
-        .schedule-details h2 {
-            margin-top: 0;
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
+    <?php include 'navigation.php'; ?>
+    
     <div class="container">
-        <h1>Edit Schedule</h1>
-        <?php if (isset($error)): ?>
-            <div class="error"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <?php if (isset($success)): ?>
-            <div class="success"><?php echo $success; ?></div>
-            <div class="schedule-details">
-                <h2>Updated Schedule Details</h2>
-                <p><strong>Client Name:</strong> <?php echo htmlspecialchars($schedule['clients_name']); ?></p>
-                <p><strong>Contact Number:</strong> <?php echo htmlspecialchars($schedule['contact_number']); ?></p>
-                <p><strong>Location:</strong> <?php echo htmlspecialchars($schedule['location']); ?></p>
-                <p><strong>Start Date & Time:</strong> <?php echo date('Y-m-d H:i', strtotime($schedule['start_date_time'])); ?></p>
-                <p><strong>End Date & Time:</strong> <?php echo date('Y-m-d H:i', strtotime($schedule['end_date_time'])); ?></p>
-                <p><strong>Event:</strong> <?php echo htmlspecialchars($schedule['Events_name']); ?></p>
-                <p><strong>Status:</strong> <?php echo htmlspecialchars($schedule['updated_status']); ?></p>
-            </div>
-        <?php endif; ?>
-        <form method="POST">
-            <div class="form-group">
-                <label for="client_name">Client Name</label>
-                <input type="text" name="client_name" id="client_name" value="<?php echo htmlspecialchars($schedule['clients_name']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="contact_number">Contact Number</label>
-                <input type="text" name="contact_number" id="contact_number" value="<?php echo htmlspecialchars($schedule['contact_number']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="location">Location</label>
-                <input type="text" name="location" id="location" value="<?php echo htmlspecialchars($schedule['location']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="start_date_time">Start Date & Time</label>
-                <input type="datetime-local" name="start_date_time" id="start_date_time" value="<?php echo date('Y-m-d\TH:i', strtotime($schedule['start_date_time'])); ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="end_date_time">End Date & Time</label>
-                <input type="datetime-local" name="end_date_time" id="end_date_time" value="<?php echo date('Y-m-d\TH:i', strtotime($schedule['end_date_time'])); ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="eventID">Event</label>
-                <select name="eventID" id="eventID" required>
-                    <?php foreach ($events as $event): ?>
-                        <option value="<?php echo $event['EventID']; ?>" <?php echo $event['EventID'] == $schedule['EventID'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($event['Events_name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="statusID">Status</label>
-                <select name="statusID" id="statusID" required>
-                    <?php foreach ($statuses as $status): ?>
-                        <option value="<?php echo $status['StatusID']; ?>" <?php echo $status['StatusID'] == $schedule['StatusID'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($status['updated_status']); ?></option>
-                    <?php endforeach; ?>
-                    <option value="cancel">Cancel</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <button type="submit">Update Schedule</button>
-            </div>
-        </form>
+        <div class="edit-form">
+            <h2 class="mb-4">Edit Schedule</h2>
+            
+            <?php if (isset($error)): ?>
+                <div class="alert alert-danger"><?php echo $error; ?></div>
+            <?php endif; ?>
+            
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label">Client Name</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($schedule['clients_name']); ?>" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Event</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($schedule['Events_name']); ?>" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Start Date/Time</label>
+                    <input type="datetime-local" name="start_date_time" class="form-control" 
+                           value="<?php echo date('Y-m-d\TH:i', strtotime($schedule['start_date_time'])); ?>" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">End Date/Time</label>
+                    <input type="datetime-local" name="end_date_time" class="form-control" 
+                           value="<?php echo date('Y-m-d\TH:i', strtotime($schedule['end_date_time'])); ?>" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control status-select" required>
+                        <option value="confirm" class="status-confirm" 
+                            <?php echo ($schedule['updated_status'] == 'confirm') ? 'selected' : ''; ?>>
+                            Confirm
+                        </option>
+                        <option value="cancel" class="status-cancel"
+                            <?php echo ($schedule['updated_status'] == 'cancel') ? 'selected' : ''; ?>>
+                            Cancel
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Update Schedule</button>
+                    <a href="schedule.php" class="btn btn-secondary">Back</a>
+                </div>
+            </form>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.querySelector('select[name="status"]').addEventListener('change', function() {
+        this.className = 'form-control status-select ' + 
+            (this.value === 'confirm' ? 'status-confirm' : 'status-cancel');
+    });
+    </script>
 </body>
 </html>

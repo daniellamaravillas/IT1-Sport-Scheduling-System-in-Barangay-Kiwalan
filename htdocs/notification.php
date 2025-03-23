@@ -1,76 +1,133 @@
 <?php
 session_start();
 include 'db.php';
-error_reporting(E_ALL);
+include 'navigation.php';
 
-// Calculate tomorrow's date and format it as letters
+// Check if user is logged in
+if (!isset($_SESSION['email'])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Get tomorrow's date
 $tomorrow = date('Y-m-d', strtotime('+1 day'));
-$tomorrowFormatted = date('l, F j, Y', strtotime($tomorrow));
 
-// Fetch events scheduled for tomorrow
-$sql = "SELECT s.ScheduleID, s.start_date_time, e.Events_name 
-        FROM Schedule s 
-        JOIN Events e ON s.EventID = e.EventID 
-        WHERE DATE(s.start_date_time) = '$tomorrow'";
-$result = $conn->query($sql);
-$count = $result->num_rows;
+// Fetch schedules
+$stmt = $conn->prepare(
+    "SELECT s.ScheduleID, s.start_date_time, s.end_date_time, e.Events_name, c.clients_name 
+     FROM Schedule s
+     JOIN Events e ON s.EventID = e.EventID
+     JOIN Clients c ON e.ClientID = c.ClientID
+     WHERE DATE(s.start_date_time) >= CURDATE()
+     ORDER BY s.start_date_time ASC"
+);
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Upcoming Reminders</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Bootstrap CSS (optional) -->
-    <link rel="stylesheet" href="yawa.css">
+    <title>Notifications</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0;
-            text-align: center; /* Center the text */
-            padding-top: 50px; /* Ensure content is visible despite the top bar */
-            padding-left: 250px; /* Ensure content is visible despite the sidebar */
+        .notification-card {
+            margin-bottom: 15px;
+            border-left: 5px solid #ccc;
         }
-        .container {
-            margin-top: 20px; /* Adjusted margin-top */
+        .notification-card.urgent {
+            border-left-color: #0d6efd; /* Default to blue for urgent cards */
+            background-color: rgba(13, 110, 253, 0.1); /* Light blue background */
         }
-        @media (max-width: 992px) {
-            body {
-                padding-left: 0; /* Remove left padding on smaller screens */
-            }
-            .container {
-                margin-top: 70px; /* Adjusted margin-top for smaller screens */
-            }
+        .notification-card.urgent:first-of-type {
+            border-left-color: #0d6efd; /* First urgent card is red */
+            background-color: rgba(78, 126, 214, 0.1); /* Light red background */
+        }
+        .notification-badge {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        .urgent-badge {
+            background-color: #dc3545; /* Keep the count badge red */
+            color: white;
+        }
+        .badge.bg-danger {
+            background-color: #0d6efd !important; /* Red for first notification */
+        }
+        .badge.bg-primary {
+            background-color: #0d6efd !important; /* Blue for other notifications */
         }
     </style>
 </head>
 <body>
-    <?php include 'navigation.php'; ?>
-    <div class="container">
-        <?php if ($count > 0): ?>
-            <div class="alert alert-danger" role="alert">
-                You have upcoming event reminders for tomorrow (<?php echo $tomorrowFormatted; ?>):
-                <?php if ($count === 1 || $count === 2): ?>
-                    <p class="mb-0"><strong>Alert:</strong> Only <?php echo $count; ?> event<?php echo $count > 1 ? 's' : ''; ?> scheduled for tomorrow.</p>
-                <?php endif; ?>
-                <ul>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <li>
-                            <?php 
-                            $time = date('h:i A', strtotime($row['start_date_time'])); 
-                            echo "{$row['Events_name']} at {$time}";
-                            ?>
-                        </li>
-                    <?php endwhile; ?>
-                </ul>
-                <a href="schedule.php" class="btn btn-primary mt-2">View Schedule</a>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-secondary" role="alert">
-                No upcoming events for tomorrow.
-            </div>
-        <?php endif; ?>
+    <div class="container mt-4">
+        <h2>
+            <i class="bi bi-bell"></i> Notifications
+            <?php 
+            // Count tomorrow's schedules
+            $tomorrowCount = 0;
+            $result->data_seek(0);
+            while ($row = $result->fetch_assoc()) {
+                if (date('Y-m-d', strtotime($row['start_date_time'])) === $tomorrow) {
+                    $tomorrowCount++;
+                }
+            }
+            if ($tomorrowCount > 0) {
+                echo "<span class='notification-badge urgent-badge'>$tomorrowCount</span>";
+            }
+            ?>
+        </h2>
+
+        <div class="notifications-container">
+            <?php
+            $result->data_seek(0);
+            while ($row = $result->fetch_assoc()) {
+                $scheduleDate = date('Y-m-d', strtotime($row['start_date_time']));
+                $isUrgent = ($scheduleDate === $tomorrow);
+                ?>
+                <div class="card notification-card <?php echo $isUrgent ? 'urgent' : ''; ?>">
+                    <div class="card-body">
+                        <h5 class="card-title d-flex justify-content-between align-items-center">
+                            <?php echo htmlspecialchars($row['Events_name']); ?>
+                            <?php if ($isUrgent): ?>
+                                <span class="badge bg-danger">Tomorrow!</span>
+                            <?php endif; ?>
+                        </h5>
+                        <div class="card-text">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-person"></i> <strong>Client:</strong> 
+                                        <?php echo htmlspecialchars($row['clients_name']); ?>
+                                    </p>
+                                    <p><i class="bi bi-calendar-event"></i> <strong>Start Date:</strong> 
+                                        <?php echo date('F j, Y', strtotime($row['start_date_time'])); ?>
+                                    </p>
+                                    <p><i class="bi bi-calendar-check"></i> <strong>End Date:</strong> 
+                                        <?php echo date('F j, Y', strtotime($row['end_date_time'])); ?>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-clock"></i> <strong>Start Time:</strong> 
+                                        <?php echo date('g:i A', strtotime($row['start_date_time'])); ?>
+                                    </p>
+                                    <p><i class="bi bi-clock-fill"></i> <strong>End Time:</strong> 
+                                        <?php echo date('g:i A', strtotime($row['end_date_time'])); ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php
+            }
+            if ($result->num_rows === 0) {
+                echo "<p class='text-muted'>No upcoming schedules.</p>";
+            }
+            ?>
+        </div>
     </div>
 </body>
 </html>
